@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "PRICE",
-    "slug": "4",
+    "slug": "PRICE",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -48,7 +48,7 @@
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "a23cf8a3-468a-438a-a02b-011402b84316"
+        "projectId": "58f80ddc-699a-4265-8a99-810281673c03"
       }
     },
     "owner": "zabi1920"
