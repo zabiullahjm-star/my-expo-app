@@ -1,98 +1,218 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
+import 'react-native-reanimated';
+import React, { useEffect, useState } from "react";
+import {
+  View,
+  Text,
+  ScrollView,
+  StyleSheet,
+  ActivityIndicator,
+  TouchableOpacity,
+} from "react-native";
 
-import { HelloWave } from '@/components/hello-wave';
-import ParallaxScrollView from '@/components/parallax-scroll-view';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { Link } from 'expo-router';
+// 📌 تعریف کامپوننت اصلی به نام App
+const App = () => {
+  const [prices, setPrices] = useState<any>({});
+  const [usdtToToman, setUsdtToToman] = useState<number | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [isDark, setIsDark] = useState<boolean>(false);
+  const backgroundColor = isDark ? "#121212" : "#ffffff";
+  const textColor = isDark ? "#ffffff" : "#000000";
 
-export default function HomeScreen() {
+  const COINS = [
+    "bitcoin",
+    "ethereum",
+    "binancecoin",
+    "ripple",
+    "dogecoin",
+    "solana",
+    "cardano",
+    "tron",
+    "polkadot",
+    "matic-network",
+  ];
+
+  const fetchCryptoPrices = async () => {
+    try {
+      const url = `https://api.coingecko.com/api/v3/simple/price?ids=${COINS.join(",")}&vs_currencies=usd&include_24hr_change=true`;
+      const res = await fetch(url);
+      const data = await res.json();
+
+      setPrices(data);
+    } catch (err) {
+      console.error("CGk error:", err);
+      setError("خطا در دریافت قیمت ارزها");
+    }
+  };
+
+  const fetchUSDTtoToman = async () => {
+    try {
+      const res = await fetch("https://api.wallex.ir/v1/markets");
+      const data = await res.json();
+      const usdt = data.result.symbols["USDTTMN"];
+      if (usdt && usdt.stats && usdt.stats.lastPrice) {
+        setUsdtToToman(parseFloat(usdt.stats.lastPrice));
+      } else {
+        setUsdtToToman(105000);
+      }
+    } catch (err) {
+      setUsdtToToman(105000);
+    }
+  };
+
+  const loadData = async () => {
+    setLoading(true);
+    setError(null);
+    await Promise.allSettled([fetchCryptoPrices(), fetchUSDTtoToman()]);
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    loadData();
+    const interval = setInterval(loadData, 30000);
+    return () => clearInterval(interval);
+  }, []);
+
+  if (loading) {
+    return (
+      <View style={[styles.container, styles.center]}>
+        <ActivityIndicator size="large" color="#0000ff" />
+        <Text>در حال بارگذاری</Text>
+      </View>
+    );
+  }
+
+  if (error) {
+    return (
+      <View style={[styles.container, styles.center]}>
+        <Text style={{ color: "red", marginBottom: 10 }}>{error}</Text>
+        <TouchableOpacity onPress={loadData}>
+          <Text style={{ color: "blue" }}>🔄 تلاش دوباره</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12',
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <Link href="/modal">
-          <Link.Trigger>
-            <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-          </Link.Trigger>
-          <Link.Preview />
-          <Link.Menu>
-            <Link.MenuAction title="Action" icon="cube" onPress={() => alert('Action pressed')} />
-            <Link.MenuAction
-              title="Share"
-              icon="square.and.arrow.up"
-              onPress={() => alert('Share pressed')}
-            />
-            <Link.Menu title="More" icon="ellipsis">
-              <Link.MenuAction
-                title="Delete"
-                icon="trash"
-                destructive
-                onPress={() => alert('Delete pressed')}
-              />
-            </Link.Menu>
-          </Link.Menu>
-        </Link>
+    <View style={{ flex: 1, backgroundColor }}>
+      <ScrollView contentContainerStyle={styles.scrollContent}>
+        <Text style={[styles.header, { color: textColor }]}>
+          📊 قیمت ارزهای دیجیتال + تغییرات ۲۴ساعته
+        </Text>
 
-        <ThemedText>
-          {`Tap the Explore tab to learn more about what's included in this starter app.`}
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          {`When you're ready, run `}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
+        {usdtToToman && (
+          <View
+            style={[
+              styles.card,
+              {
+                backgroundColor: isDark ? "#1e1e1e" : "#fff",
+                shadowOpacity: isDark ? 0 : 0.1,
+              },
+            ]}
+          >
+            <Text style={[styles.symbol, { color: textColor }]}>USDT</Text>
+            <Text style={[styles.price, { color: textColor }]}>
+              تومان: {usdtToToman.toLocaleString()}
+            </Text>
+          </View>
+        )}
+
+        {Object.keys(prices).map((coin) => {
+          const coinData = prices[coin];
+          const usdtPrice = coinData?.usd;
+          const change = coinData?.usd_24h_change;
+          if (!usdtPrice) return null;
+          const changeColor =
+            change > 0 ? "green" : change < 0 ? "red" : "gray";
+
+          return (
+            <View
+              key={coin}
+              style={[
+                styles.card,
+                {
+                  backgroundColor: isDark ? "#1e1e1e" : "#fff",
+                  shadowOpacity: isDark ? 0 : 0.1,
+                },
+              ]}
+            >
+              <Text style={[styles.symbol, { color: textColor }]}>
+                {coin.toUpperCase()}
+              </Text>
+              <Text style={[styles.price, { color: textColor }]}>
+                قیمت به USDT: {usdtPrice.toLocaleString()}
+              </Text>
+              <Text style={[styles.change, { color: changeColor }]}>
+                تغییر ۲۴ساعته: {change ? change.toFixed(2) + "%" : "نامعلوم"}
+              </Text>
+              {usdtToToman && (
+                <Text style={[styles.price, { color: textColor }]}>
+                  قیمت به تومان: {(usdtPrice * usdtToToman).toLocaleString()}
+                </Text>
+              )}
+            </View>
+          );
+        })}
+      </ScrollView>
+
+      {/* دکمه حالت شب/روز */}
+      <TouchableOpacity
+        onPress={() => setIsDark(!isDark)}
+        style={{
+          position: "absolute",
+          bottom: 20,
+          right: 20,
+          width: 40,
+          height: 40,
+          borderRadius: 20,
+          backgroundColor: isDark ? "#333" : "#ddd",
+          justifyContent: "center",
+          alignItems: "center",
+          elevation: 5,
+        }}
+      >
+        <Text style={{ fontSize: 18 }}>{isDark ? "🌙" : "☀️"}</Text>
+      </TouchableOpacity>
+    </View>
   );
-}
+};
 
 const styles = StyleSheet.create({
-  titleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
+  container: { flex: 1, padding: 20, backgroundColor: "#f5f5f5" },
+  center: { flex: 1, justifyContent: "center", alignItems: "center" },
+  header: {
+    fontSize: 22,
+    fontWeight: "bold",
+    textAlign: "center",
+    marginBottom: 20,
+    color: "#333",
   },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
+  card: {
+    backgroundColor: "#fff",
+    padding: 15,
+    borderRadius: 10,
+    marginBottom: 15,
+    shadowColor: "#000",
+    shadowOpacity: 0.1,
+    shadowOffset: { width: 0, height: 2 },
+    shadowRadius: 4,
+    elevation: 3,
   },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
+  symbol: {
+    fontSize: 18,
+    fontWeight: "bold",
+    marginBottom: 10,
+    color: "#2c3e50",
+  },
+  price: { fontSize: 16, color: "#555" },
+  change: { fontSize: 16, fontWeight: "bold", marginTop: 5 },
+  scrollContent: {
+    flexGrow: 1,
+    padding: 20,
   },
 });
+
+// ✅ درست برای Expo Router
+export default function Index() {
+  return <App />;
+}
