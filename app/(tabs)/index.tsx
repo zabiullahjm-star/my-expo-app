@@ -14,6 +14,7 @@ const App = () => {
   const [prices, setPrices] = useState<any>({});
   const [usdtToToman, setUsdtToToman] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
+  const [initialLoading, setInitialLoading] = useState(true); // 👈 فقط برای بار اول
   const [error, setError] = useState<string | null>(null);
   const [isDark, setIsDark] = useState<boolean>(false);
   const backgroundColor = isDark ? "#121212" : "#ffffff";
@@ -30,6 +31,35 @@ const App = () => {
     "tron",
     "polkadot",
     "matic-network",
+    "hyperliquid",
+    "sui",
+    "stellar",
+    "litecoin",
+    "whitebit",
+    "uniswap",
+    "mantle",
+    "monero",
+    "ethena",
+    "pepe",
+    "aave",
+    "okb",
+    "memecore",
+    "near",
+    "bittensor",
+    "aptos",
+    "arbitrum",
+    "kaspa",
+    "cosmos",
+    "algorand",
+    "vechain",
+    "susds",
+    "bonk",
+    "fasttoken",
+    "sky",
+    "filecoin",
+    "optimism",
+    "celestia",
+    "render-token"
   ];
 
   const fetchCryptoPrices = async () => {
@@ -60,20 +90,21 @@ const App = () => {
     }
   };
 
-  const loadData = async () => {
-    setLoading(true);
+  const loadData = async (firstTime = false) => {
+    if (firstTime) setInitialLoading(true);  // 👈 فقط بار اول spinner نشون بده
     setError(null);
-    await Promise.allSettled([fetchCryptoPrices(), fetchUSDTtoToman()]);
-    setLoading(false);
-  };
 
+    await Promise.allSettled([fetchCryptoPrices(), fetchUSDTtoToman()]);
+
+    if (firstTime) setInitialLoading(false);
+  };
   useEffect(() => {
-    loadData();
-    const interval = setInterval(loadData, 30000);
+    loadData(true); // 👈 بار اول با spinner
+    const interval = setInterval(() => loadData(false), 30000); // 👈 بعدش بدون spinner
     return () => clearInterval(interval);
   }, []);
 
-  if (loading) {
+  if (initialLoading) {
     return (
       <View style={[styles.container, styles.center]}>
         <ActivityIndicator size="large" color="#0000ff" />
@@ -86,7 +117,7 @@ const App = () => {
     return (
       <View style={[styles.container, styles.center]}>
         <Text style={{ color: "red", marginBottom: 10 }}>{error}</Text>
-        <TouchableOpacity onPress={loadData}>
+        <TouchableOpacity onPress={() => loadData(false)}>
           <Text style={{ color: "blue" }}>🔄 تلاش دوباره</Text>
         </TouchableOpacity>
       </View>
@@ -117,7 +148,7 @@ const App = () => {
           </View>
         )}
 
-        {Object.keys(prices).map((coin) => {
+        {COINS.map((coin) => {
           const coinData = prices[coin];
           const usdtPrice = coinData?.usd;
           const change = coinData?.usd_24h_change;
