@@ -7,7 +7,15 @@ import {
   StyleSheet,
   ActivityIndicator,
   TouchableOpacity,
+  Alert,
+  Linking, // 👈 برای باز کردن لینک آپدیت
 } from "react-native";
+
+// 📌 نسخه فعلی اپلیکیشن (خودت دستی اینو ست کن)
+const CURRENT_VERSION = "1.0.0";
+
+// 📌 آدرس فایل Version.json در گیت‌هاب پیجت
+const VERSION_URL = "https://zabiullahjm-star.github.io/price-site/Version.json";
 
 // 📌 تعریف کامپوننت اصلی به نام App
 const App = () => {
@@ -17,49 +25,18 @@ const App = () => {
   const [initialLoading, setInitialLoading] = useState(true); // 👈 فقط برای بار اول
   const [error, setError] = useState<string | null>(null);
   const [isDark, setIsDark] = useState<boolean>(false);
+
   const backgroundColor = isDark ? "#121212" : "#ffffff";
   const textColor = isDark ? "#ffffff" : "#000000";
 
   const COINS = [
-    "bitcoin",
-    "ethereum",
-    "binancecoin",
-    "ripple",
-    "dogecoin",
-    "solana",
-    "cardano",
-    "tron",
-    "polkadot",
-    "matic-network",
-    "hyperliquid",
-    "sui",
-    "stellar",
-    "litecoin",
-    "whitebit",
-    "uniswap",
-    "mantle",
-    "monero",
-    "ethena",
-    "pepe",
-    "aave",
-    "okb",
-    "memecore",
-    "near",
-    "bittensor",
-    "aptos",
-    "arbitrum",
-    "kaspa",
-    "cosmos",
-    "algorand",
-    "vechain",
-    "susds",
-    "bonk",
-    "fasttoken",
-    "sky",
-    "filecoin",
-    "optimism",
-    "celestia",
-    "render-token"
+    "bitcoin", "ethereum", "binancecoin", "ripple", "dogecoin", "solana",
+    "cardano", "tron", "polkadot", "matic-network", "hyperliquid", "sui",
+    "stellar", "litecoin", "whitebit", "uniswap", "mantle", "monero",
+    "ethena", "pepe", "aave", "okb", "memecore", "near", "bittensor",
+    "aptos", "arbitrum", "kaspa", "cosmos", "algorand", "vechain",
+    "susds", "bonk", "fasttoken", "sky", "filecoin", "optimism",
+    "celestia", "render-token"
   ];
 
   const fetchCryptoPrices = async () => {
@@ -67,7 +44,6 @@ const App = () => {
       const url = `https://api.coingecko.com/api/v3/simple/price?ids=${COINS.join(",")}&vs_currencies=usd&include_24hr_change=true`;
       const res = await fetch(url);
       const data = await res.json();
-
       setPrices(data);
     } catch (err) {
       console.error("CGk error:", err);
@@ -90,17 +66,38 @@ const App = () => {
     }
   };
 
+  // 📌 چک کردن آپدیت
+  const checkForUpdate = async () => {
+    try {
+      const res = await fetch(VERSION_URL);
+      const data = await res.json();
+
+      if (data.latestVersion && data.latestVersion !== CURRENT_VERSION) {
+        Alert.alert(
+          "بروزرسانی موجود است 🚀",
+          data.changeLog || "نسخه جدید برای دانلود آماده است.",
+          [
+            { text: "بعداً", style: "cancel" },
+            { text: "دانلود", onPress: () => Linking.openURL(data.downloadUrl) }
+          ]
+        );
+      }
+    } catch (err) {
+      console.log("خطا در بررسی آپدیت:", err);
+    }
+  };
+
   const loadData = async (firstTime = false) => {
-    if (firstTime) setInitialLoading(true);  // 👈 فقط بار اول spinner نشون بده
+    if (firstTime) setInitialLoading(true); // 👈 فقط بار اول spinner نشون بده
     setError(null);
-
     await Promise.allSettled([fetchCryptoPrices(), fetchUSDTtoToman()]);
-
     if (firstTime) setInitialLoading(false);
   };
+
   useEffect(() => {
-    loadData(true); // 👈 بار اول با spinner
-    const interval = setInterval(() => loadData(false), 30000); // 👈 بعدش بدون spinner
+    loadData(true);
+    checkForUpdate(); // 👈 بعد از اولین بارگذاری دیتا، آپدیت هم چک بشه
+    const interval = setInterval(() => loadData(false), 30000);
     return () => clearInterval(interval);
   }, []);
 
@@ -122,9 +119,7 @@ const App = () => {
         </TouchableOpacity>
       </View>
     );
-  }
-
-  return (
+  } return (
     <View style={{ flex: 1, backgroundColor }}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <Text style={[styles.header, { color: textColor }]}>
@@ -153,8 +148,8 @@ const App = () => {
           const usdtPrice = coinData?.usd;
           const change = coinData?.usd_24h_change;
           if (!usdtPrice) return null;
-          const changeColor =
-            change > 0 ? "green" : change < 0 ? "red" : "gray";
+
+          const changeColor = change > 0 ? "green" : change < 0 ? "red" : "gray";
 
           return (
             <View
