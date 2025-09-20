@@ -52,6 +52,14 @@
         "projectId": "3477ac96-6ba0-478d-b921-351265b54fcd"
       }
     },
-    "owner": "zabi1920"
+    "owner": "zabi1920",
+    "updates": {
+      "url": "https://u.expo.dev/3477ac96-6ba0-478d-b921-351265b54fcd",
+      "checkAutomatically": "ON_LOAD",
+      "fallbackToCacheTimeout": 0
+    },
+    "runtimeVersion": {
+      "policy": "sdkVersion"
+    }
   }
 }

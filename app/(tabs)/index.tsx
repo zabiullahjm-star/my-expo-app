@@ -1,4 +1,4 @@
-import 'react-native-reanimated';
+import "react-native-reanimated";
 import React, { useEffect, useState } from "react";
 import {
   View,
@@ -7,24 +7,19 @@ import {
   StyleSheet,
   ActivityIndicator,
   TouchableOpacity,
-  Alert,
-  Linking, // 👈 برای باز کردن لینک آپدیت
 } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { ThemeProvider, useTheme } from "../ThemeContext";
+import UpdateChecker from "../UpdateChecker"; // 👈 مسیر درست و با حرف بزرگ
 
-// 📌 نسخه فعلی اپلیکیشن (خودت دستی اینو ست کن)
-const CURRENT_VERSION = "1.0.0";
-
-// 📌 آدرس فایل Version.json در گیت‌هاب پیجت
-const VERSION_URL = "https://zabiullahjm-star.github.io/price-site/Version.json";
-
-// 📌 تعریف کامپوننت اصلی به نام App
+// 📌 کامپوننت اصلی App
 const App = () => {
+  const { isDark, toggleTheme } = useTheme();
   const [prices, setPrices] = useState<any>({});
   const [usdtToToman, setUsdtToToman] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
-  const [initialLoading, setInitialLoading] = useState(true); // 👈 فقط برای بار اول
+  const [initialLoading, setInitialLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [isDark, setIsDark] = useState<boolean>(false);
 
   const backgroundColor = isDark ? "#121212" : "#ffffff";
   const textColor = isDark ? "#ffffff" : "#000000";
@@ -36,18 +31,24 @@ const App = () => {
     "ethena", "pepe", "aave", "okb", "memecore", "near", "bittensor",
     "aptos", "arbitrum", "kaspa", "cosmos", "algorand", "vechain",
     "susds", "bonk", "fasttoken", "sky", "filecoin", "optimism",
-    "celestia", "render-token"
+    "celestia", "render-token",
   ];
 
+  // 📌 گرفتن قیمت‌ها
   const fetchCryptoPrices = async () => {
     try {
       const url = `https://api.coingecko.com/api/v3/simple/price?ids=${COINS.join(",")}&vs_currencies=usd&include_24hr_change=true`;
       const res = await fetch(url);
       const data = await res.json();
       setPrices(data);
+      await AsyncStorage.setItem("CACHED_PRICES", JSON.stringify(data));
     } catch (err) {
       console.error("CGk error:", err);
-      setError("خطا در دریافت قیمت ارزها");
+      setError("⚠️ خطا در بروزرسانی قیمت‌ها");
+
+      // 👇 اگر اینترنت قطع شد → آخرین داده ذخیره‌شده
+      const cached = await AsyncStorage.getItem("CACHED_PRICES");
+      if (cached) setPrices(JSON.parse(cached));
     }
   };
 
@@ -58,37 +59,19 @@ const App = () => {
       const usdt = data.result.symbols["USDTTMN"];
       if (usdt && usdt.stats && usdt.stats.lastPrice) {
         setUsdtToToman(parseFloat(usdt.stats.lastPrice));
+        await AsyncStorage.setItem("CACHED_USDT", usdt.stats.lastPrice.toString());
       } else {
         setUsdtToToman(105000);
       }
     } catch (err) {
-      setUsdtToToman(105000);
-    }
-  };
-
-  // 📌 چک کردن آپدیت
-  const checkForUpdate = async () => {
-    try {
-      const res = await fetch(VERSION_URL);
-      const data = await res.json();
-
-      if (data.latestVersion && data.latestVersion !== CURRENT_VERSION) {
-        Alert.alert(
-          "بروزرسانی موجود است 🚀",
-          data.changeLog || "نسخه جدید برای دانلود آماده است.",
-          [
-            { text: "بعداً", style: "cancel" },
-            { text: "دانلود", onPress: () => Linking.openURL(data.downloadUrl) }
-          ]
-        );
-      }
-    } catch (err) {
-      console.log("خطا در بررسی آپدیت:", err);
+      const cached = await AsyncStorage.getItem("CACHED_USDT");
+      if (cached) setUsdtToToman(parseFloat(cached));
+      else setUsdtToToman(105000);
     }
   };
 
   const loadData = async (firstTime = false) => {
-    if (firstTime) setInitialLoading(true); // 👈 فقط بار اول spinner نشون بده
+    if (firstTime) setInitialLoading(true);
     setError(null);
     await Promise.allSettled([fetchCryptoPrices(), fetchUSDTtoToman()]);
     if (firstTime) setInitialLoading(false);
@@ -96,7 +79,6 @@ const App = () => {
 
   useEffect(() => {
     loadData(true);
-    checkForUpdate(); // 👈 بعد از اولین بارگذاری دیتا، آپدیت هم چک بشه
     const interval = setInterval(() => loadData(false), 30000);
     return () => clearInterval(interval);
   }, []);
@@ -105,7 +87,7 @@ const App = () => {
     return (
       <View style={[styles.container, styles.center]}>
         <ActivityIndicator size="large" color="#0000ff" />
-        <Text>در حال بارگذاری</Text>
+        <Text>در حال بارگذاری...</Text>
       </View>
     );
   }
@@ -119,14 +101,14 @@ const App = () => {
         </TouchableOpacity>
       </View>
     );
-  } return (
+  }
+
+  return (
     <View style={{ flex: 1, backgroundColor }}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <Text style={[styles.header, { color: textColor }]}>
           📊 قیمت ارزهای دیجیتال + تغییرات ۲۴ساعته
-        </Text>
-
-        {usdtToToman && (
+        </Text>{usdtToToman && (
           <View
             style={[
               styles.card,
@@ -148,7 +130,6 @@ const App = () => {
           const usdtPrice = coinData?.usd;
           const change = coinData?.usd_24h_change;
           if (!usdtPrice) return null;
-
           const changeColor = change > 0 ? "green" : change < 0 ? "red" : "gray";
 
           return (
@@ -183,7 +164,7 @@ const App = () => {
 
       {/* دکمه حالت شب/روز */}
       <TouchableOpacity
-        onPress={() => setIsDark(!isDark)}
+        onPress={toggleTheme}
         style={{
           position: "absolute",
           bottom: 20,
@@ -199,10 +180,14 @@ const App = () => {
       >
         <Text style={{ fontSize: 18 }}>{isDark ? "🌙" : "☀️"}</Text>
       </TouchableOpacity>
+
+      {/* ✅ UpdateChecker */}
+      <UpdateChecker />
     </View>
   );
 };
 
+// 📌 استایل‌ها
 const styles = StyleSheet.create({
   container: { flex: 1, padding: 20, backgroundColor: "#f5f5f5" },
   center: { flex: 1, justifyContent: "center", alignItems: "center" },
@@ -224,21 +209,17 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 3,
   },
-  symbol: {
-    fontSize: 18,
-    fontWeight: "bold",
-    marginBottom: 10,
-    color: "#2c3e50",
-  },
+  symbol: { fontSize: 18, fontWeight: "bold", marginBottom: 10, color: "#2c3e50" },
   price: { fontSize: 16, color: "#555" },
   change: { fontSize: 16, fontWeight: "bold", marginTop: 5 },
-  scrollContent: {
-    flexGrow: 1,
-    padding: 20,
-  },
+  scrollContent: { flexGrow: 1, padding: 20 },
 });
 
 // ✅ درست برای Expo Router
 export default function Index() {
-  return <App />;
+  return (
+    <ThemeProvider>
+      <App />
+    </ThemeProvider>
+  );
 }
