@@ -9,7 +9,7 @@ import {
   TouchableOpacity,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { ThemeProvider, useTheme } from "../ThemeContext";
+import { useTheme } from "../ThemeContext";
 import UpdateChecker from "../UpdateChecker"; // 👈 مسیر درست و با حرف بزرگ
 
 // 📌 کامپوننت اصلی App
@@ -216,10 +216,4 @@ const styles = StyleSheet.create({
 });
 
 // ✅ درست برای Expo Router
-export default function Index() {
-  return (
-    <ThemeProvider>
-      <App />
-    </ThemeProvider>
-  );
-}
+export default App;
