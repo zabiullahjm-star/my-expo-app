@@ -107,7 +107,7 @@ const App = () => {
     <View style={{ flex: 1, backgroundColor }}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <Text style={[styles.header, { color: textColor }]}>
-          📊 قیمت ارزهای دیجیتال + تغییرات ۲۴ساعته
+          📊 .قیمت ارزهای دیجیتال + تغییرات ۲۴ساعته.
         </Text>{usdtToToman && (
           <View
             style={[
