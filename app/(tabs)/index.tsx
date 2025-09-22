@@ -227,7 +227,7 @@ const App: React.FC = () => {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
       >
-        <Text style={headerStyle}>📊 قیمت ارزهای دیجیتال + تغییرات ۲۴ساعته</Text>
+        <Text style={headerStyle}>search bar soon</Text>
 
         {usdtToToman !== null && (
           <View
