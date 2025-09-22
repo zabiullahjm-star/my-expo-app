@@ -31,7 +31,7 @@ const App = () => {
     "ethena", "pepe", "aave", "okb", "memecore", "near", "bittensor",
     "aptos", "arbitrum", "kaspa", "cosmos", "algorand", "vechain",
     "susds", "bonk", "fasttoken", "sky", "filecoin", "optimism",
-    "celestia", "render-token",
+    "celestia", "render-token", "fartcoin",
   ];
 
   // 📌 گرفتن قیمت‌ها
@@ -107,7 +107,7 @@ const App = () => {
     <View style={{ flex: 1, backgroundColor }}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <Text style={[styles.header, { color: textColor }]}>
-          📊 .قیمت ارزهای دیجیتال + تغییرات ۲۴ساعته.
+          📊 قیمت ارزهای دیجیتال + تغییرات ۲۴ساعته.
         </Text>{usdtToToman && (
           <View
             style={[
