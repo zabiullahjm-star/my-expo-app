@@ -31,7 +31,7 @@ const App = () => {
     "ethena", "pepe", "aave", "okb", "memecore", "near", "bittensor",
     "aptos", "arbitrum", "kaspa", "cosmos", "algorand", "vechain",
     "susds", "bonk", "fasttoken", "sky", "filecoin", "optimism",
-    "celestia", "render-token",
+    "celestia", "render-token", "fartcoin",
   ];
 
   // 📌 گرفتن قیمت‌ها
