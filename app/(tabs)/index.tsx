@@ -17,6 +17,8 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useTheme } from "../ThemeContext";
 import UpdateChecker from "../UpdateChecker";
+import { translations } from "../translations";
+
 
 type PriceRecord = {
   usd?: number;
@@ -29,7 +31,7 @@ const COINS: string[] = [
   "stellar", "litecoin", "whitebit", "uniswap", "mantle", "monero",
   "ethena", "pepe", "aave", "okb", "memecoin", "near", "bittensor",
   "aptos", "arbitrum", "kaspa", "cosmos", "algorand", "vechain",
-  "staked-usd", "bonk", "fasttoken", "sky", "filecoin", "optimism",
+  "bonk", "fasttoken", "sky", "filecoin", "optimism",
   "celestia", "render-token", "fartcoin",
 ];
 
@@ -49,6 +51,8 @@ const App: React.FC = () => {
   const [refreshing, setRefreshing] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState<string>("");
+  const [isPersian, setIsPersian] = useState(false);
+  const t = isPersian ? translations.fa : translations.en;
 
   const backgroundColor = isDark ? "#121212" : "#ffffff";
   const textColor = isDark ? "#ffffff" : "#000000";
@@ -75,7 +79,7 @@ const App: React.FC = () => {
       await AsyncStorage.setItem(STORAGE_KEYS.PRICES, JSON.stringify(data));
     } catch (err) {
       console.warn("CGk error:", err);
-      setError("⚠️ خطا در بروزرسانی قیمت‌ها");
+      setError(t.error);
       const cached = await AsyncStorage.getItem(STORAGE_KEYS.PRICES);
       if (cached) {
         try {
@@ -213,7 +217,7 @@ const App: React.FC = () => {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor }, styles.center]}>
         <ActivityIndicator size="large" color={textColor} />
-        <Text style={{ marginTop: 10, color: textColor }}>در حال بارگذاری...</Text>
+        <Text style={{ marginTop: 10, color: textColor }}>{t.loading}</Text>
       </SafeAreaView>
     );
   }
@@ -223,7 +227,7 @@ const App: React.FC = () => {
       <SafeAreaView style={[styles.container, { backgroundColor }, styles.center]}>
         <Text style={{ color: "red", marginBottom: 10, textAlign: "center" }}>{error}</Text>
         <TouchableOpacity onPress={() => loadData(true)}>
-          <Text style={{ color: "#2196f3" }}>{"🔄 تلاش دوباره"}</Text>
+          <Text style={{ color: "#2196f3" }}>{t.retry}</Text>
         </TouchableOpacity>
       </SafeAreaView>
     );
@@ -233,7 +237,7 @@ const App: React.FC = () => {
     <SafeAreaView style={[styles.container, { backgroundColor }]}><View style={[styles.searchContainer, { backgroundColor: searchBackgroundColor }]}>
       <TextInput
         style={[styles.searchInput, { color: searchTextColor }]}
-        placeholder="جستجوی کوین مورد نظر با اسم کامل"
+        placeholder={t.searchPlaceholder}
         placeholderTextColor={placeholderColor}
         value={searchQuery}
         onChangeText={setSearchQuery}
@@ -250,13 +254,13 @@ const App: React.FC = () => {
 
       <View style={[styles.columnsHeader, { backgroundColor }]}>
         <View style={styles.coinInfoHeader}>
-          <Text style={[styles.headerText, { color: textColor }]}> کوین</Text>
+          <Text style={[styles.headerText, { color: textColor }]}>{t.coinName}</Text>
         </View>
         <View style={styles.centerColHeader}>
-          <Text style={[styles.headerText, { color: textColor }]}>قیمت به(USDT)</Text>
+          <Text style={[styles.headerText, { color: textColor }]}>{t.usdtPrice}</Text>
         </View>
         <View style={styles.rightColHeader}>
-          <Text style={[styles.headerText, { color: textColor }]}>قیمت به(تومان)</Text>
+          <Text style={[styles.headerText, { color: textColor }]}>{t.tomanPrice}</Text>
         </View>
       </View>
 
@@ -293,13 +297,13 @@ const App: React.FC = () => {
                   numberOfLines={1}
                   ellipsizeMode="tail"
                 >
-                  {coin.toUpperCase()}
+                  {t.coinNames && coin in t.coinNames ? t.coinNames[coin as keyof typeof t.coinNames] : coin.toUpperCase()}
                 </Text>
               </View>
 
               <View style={styles.centerCol}>
                 <Text style={[styles.price, { color: textColor }]}>
-                  {usdtPrice ? Number(usdtPrice).toLocaleString() : "—"}
+                  {usdtPrice ? (usdtPrice < 0.001 ? usdtPrice.toFixed(8) : Number(usdtPrice).toLocaleString(isPersian ? 'fa-IR' : 'en-US')) : "—"}
                 </Text>
                 <Text style={[styles.change, { color: changeColor }]}>
                   {change !== undefined && change !== null ? change.toFixed(2) + "%" : "—"}
@@ -308,7 +312,7 @@ const App: React.FC = () => {
 
               <View style={styles.rightCol}>
                 <Text style={[styles.price, { color: textColor }]}>
-                  {usdtPrice && usdtToToman ? Math.round(usdtPrice * usdtToToman).toLocaleString() : "—"}
+                  {usdtPrice && usdtToToman ? (usdtPrice < 0.001 ? (usdtPrice * usdtToToman).toFixed(0) + " تومان" : Math.round(usdtPrice * usdtToToman).toLocaleString(isPersian ? 'fa-IR' : 'en-US')) : "—"}
                 </Text>
               </View>
             </View>
@@ -318,11 +322,26 @@ const App: React.FC = () => {
         {displayCoins.length === 0 && (
           <View style={styles.noResults}>
             <Text style={[styles.noResultsText, { color: textColor }]}>
-              {"کوینی با نام '" + searchQuery + "' یافت نشد"}
+              {t.noResults} "{searchQuery}" {t.notFound}
             </Text>
           </View>
         )}
       </ScrollView>
+      {/* دکمه تغییر زبان */}
+      <TouchableOpacity
+        onPress={() => setIsPersian(!isPersian)}
+        style={[
+          styles.langButton,
+          {
+            backgroundColor: isDark ? "#072655ff" : "#fff",
+            borderColor: isDark ? "#1c477cff" : "#e5e7eb"
+          },
+        ]}
+      >
+        <Text style={{ fontSize: 14, color: textColor, fontWeight: 'bold' }}>
+          {isPersian ? "EN" : "FA"}
+        </Text>
+      </TouchableOpacity>
 
       <TouchableOpacity
         onPress={toggleTheme}
@@ -460,6 +479,18 @@ const App: React.FC = () => {
   fab: {
     position: "absolute",
     bottom: 20,
+    right: 20,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    borderWidth: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    elevation: 6,
+  },
+  langButton: {
+    position: "absolute",
+    bottom: 80,
     right: 20,
     width: 48,
     height: 48,
