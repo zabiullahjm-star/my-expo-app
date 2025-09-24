@@ -17,6 +17,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useTheme } from "../ThemeContext";
 import UpdateChecker from "../UpdateChecker";
+import { useLanguage } from "../languageContext";
 import { translations } from "../translations";
 
 
@@ -51,8 +52,8 @@ const App: React.FC = () => {
   const [refreshing, setRefreshing] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState<string>("");
-  const [isPersian, setIsPersian] = useState(false);
-  const t = isPersian ? translations.fa : translations.en;
+  const { isPersian, toggleLanguage } = useLanguage(); // این خط
+  const t = isPersian ? translations.fa : translations.en; // این خط
 
   const backgroundColor = isDark ? "#121212" : "#ffffff";
   const textColor = isDark ? "#ffffff" : "#000000";
@@ -329,7 +330,7 @@ const App: React.FC = () => {
       </ScrollView>
       {/* دکمه تغییر زبان */}
       <TouchableOpacity
-        onPress={() => setIsPersian(!isPersian)}
+        onPress= {toggleLanguage}
         style={[
           styles.langButton,
           {
