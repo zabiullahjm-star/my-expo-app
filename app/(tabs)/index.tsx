@@ -19,6 +19,7 @@ import { useTheme } from "../ThemeContext";
 import UpdateChecker from "../UpdateChecker";
 import { useLanguage } from "../languageContext";
 import { translations } from "../translations";
+import { useRouter } from "expo-router";
 
 
 type PriceRecord = {
@@ -54,6 +55,7 @@ const App: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState<string>("");
   const { isPersian, toggleLanguage } = useLanguage(); // این خط
   const t = isPersian ? translations.fa : translations.en; // این خط
+  const router = useRouter();
 
   const backgroundColor = isDark ? "#121212" : "#ffffff";
   const textColor = isDark ? "#ffffff" : "#000000";
@@ -281,42 +283,52 @@ const App: React.FC = () => {
           const changeColor = change && change > 0 ? "#1db954" : change && change < 0 ? "#e53935" : "#666";
 
           return (
-            <View
+            <TouchableOpacity
               key={coin}
-              style={[
-                styles.cardRow,
-                {
-                  backgroundColor: cardBackgroundColor,
-                  shadowOpacity: isDark ? 0 : 0.1
-                },
-              ]}
+              onPress={() => router.push(`./coin-details?coinId=${coin}`)}
             >
-              <View style={styles.coinInfo}>
-                {renderCoinLogo(coin)}
-                <Text
-                  style={[styles.symbol, { color: textColor }]}
-                  numberOfLines={1}
-                  ellipsizeMode="tail"
-                >
-                  {t.coinNames && coin in t.coinNames ? t.coinNames[coin as keyof typeof t.coinNames] : coin.toUpperCase()}
-                </Text>
-              </View>
+              <View
+                style={[
+                  styles.cardRow,
+                  {
+                    backgroundColor: cardBackgroundColor,
+                    shadowOpacity: isDark ? 0 : 0.1,
+                    borderWidth: 1, // حاشیه دور کامل
+                    borderColor: change && change > 0 ?
+                      (isDark ? "#4db872ff" : "#4CAF50") : // سبز برای صعود
+                      change && change < 0 ?
+                        (isDark ? "#ec706ee3" : "#e74b3fff") : // قرمز برای نزول
+                        "transparent", // حالت عادی
+                  },
+                ]}
+              >
+                <View style={styles.coinInfo}>
+                  {renderCoinLogo(coin)}
+                  <Text
+                    style={[styles.symbol, { color: textColor }]}
+                    numberOfLines={1}
+                    ellipsizeMode="tail"
+                  >
+                    {t.coinNames && coin in t.coinNames ? t.coinNames[coin as keyof typeof t.coinNames] : coin.toUpperCase()}
+                  </Text>
+                </View>
 
-              <View style={styles.centerCol}>
-                <Text style={[styles.price, { color: textColor }]}>
-                  {usdtPrice ? (usdtPrice < 0.001 ? usdtPrice.toFixed(8) : Number(usdtPrice).toLocaleString(isPersian ? 'fa-IR' : 'en-US')) : "—"}
-                </Text>
-                <Text style={[styles.change, { color: changeColor }]}>
-                  {change !== undefined && change !== null ? change.toFixed(2) + "%" : "—"}
-                </Text>
-              </View>
+                <View style={styles.centerCol}>
+                  <Text style={[styles.price, { color: textColor }]}>
+                    {usdtPrice ? (usdtPrice < 0.001 ? usdtPrice.toFixed(8) : Number(usdtPrice).toLocaleString(isPersian ? 'fa-IR' : 'en-US')) : "—"}
+                  </Text>
+                  <Text style={[styles.change, { color: changeColor }]}>
+                    {change !== undefined && change !== null ? change.toFixed(2) + "%" : "—"}
+                  </Text>
+                </View>
 
-              <View style={styles.rightCol}>
-                <Text style={[styles.price, { color: textColor }]}>
-                  {usdtPrice && usdtToToman ? (usdtPrice < 0.001 ? (usdtPrice * usdtToToman).toFixed(0) + " تومان" : Math.round(usdtPrice * usdtToToman).toLocaleString(isPersian ? 'fa-IR' : 'en-US')) : "—"}
-                </Text>
+                <View style={styles.rightCol}>
+                  <Text style={[styles.price, { color: textColor }]}>
+                    {usdtPrice && usdtToToman ? (usdtPrice < 0.001 ? (usdtPrice * usdtToToman).toFixed(0) + " تومان" : Math.round(usdtPrice * usdtToToman).toLocaleString(isPersian ? 'fa-IR' : 'en-US')) : "—"}
+                  </Text>
+                </View>
               </View>
-            </View>
+            </TouchableOpacity>
           );
         })}
 
@@ -329,20 +341,7 @@ const App: React.FC = () => {
         )}
       </ScrollView>
       {/* دکمه تغییر زبان */}
-      <TouchableOpacity
-        onPress= {toggleLanguage}
-        style={[
-          styles.langButton,
-          {
-            backgroundColor: isDark ? "#072655ff" : "#fff",
-            borderColor: isDark ? "#1c477cff" : "#e5e7eb"
-          },
-        ]}
-      >
-        <Text style={{ fontSize: 14, color: textColor, fontWeight: 'bold' }}>
-          {isPersian ? "EN" : "FA"}
-        </Text>
-      </TouchableOpacity>
+   
 
       <TouchableOpacity
         onPress={toggleTheme}
@@ -431,6 +430,9 @@ const App: React.FC = () => {
     shadowOffset: { width: 0, height: 2 },
     shadowRadius: 4,
     elevation: 2,
+    borderWidth: 1,
+    borderColor: "transparent"
+
   },
   coinInfo: {
     flexDirection: "row",
