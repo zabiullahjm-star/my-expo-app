@@ -12,6 +12,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { useTheme } from "./ThemeContext";
 import { useLanguage } from "./languageContext";
 import { translations } from "./translations";
+import TradingViewChart from '../components/TradingviewChart';
 
 type CoinDetails = {
   name: string;
@@ -147,20 +148,12 @@ export default function CoinDetailsScreen() {
           </Text>
         </View>
 
-        {/* چارت کوچک */}
-        <TouchableOpacity
-          style={[styles.chartContainer, { backgroundColor: cardColor }]}
-          onPress={openFullChart}
-        >
+        <View style={[styles.chartContainer, { backgroundColor: cardColor }]}>
           <Text style={[styles.chartTitle, { color: textColor }]}>
-            {isPersian ? "نمایش چارت کامل" : "View Full Chart"}</Text>
-          <View style={styles.chartPlaceholder}>
-            <Text style={{ color: textColor }}>📊</Text>
-            <Text style={[styles.chartHint, { color: textColor }]}>
-              {isPersian ? "برای مشاهده چارت کامل ضربه بزنید" : "Tap to view full chart"}
-            </Text>
-          </View>
-        </TouchableOpacity>
+            {isPersian ? "نمودار زنده قیمت" : "Live Price Chart"}
+          </Text>
+          <TradingViewChart symbol={String(coinId)} height={300} />
+        </View>
 
         {/* آمارهای بازار */}
         <View style={[styles.statsCard, { backgroundColor: cardColor }]}>
