@@ -5,8 +5,10 @@ import {
   StyleSheet,
   ScrollView,
   Linking,
-  ActivityIndicator
+  ActivityIndicator,
+  RefreshControl,
 } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useLocalSearchParams } from "expo-router";
 import { useTheme } from "./ThemeContext";
 import { useLanguage } from "./languageContext";
@@ -35,26 +37,34 @@ export default function CoinDetailsScreen() {
 
   const [coinData, setCoinData] = useState<CoinDetails | null>(null);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
   const backgroundColor = isDark ? "#121212" : "#F9FAFB";
   const textColor = isDark ? "#FFFFFF" : "#000000";
   const cardColor = isDark ? "#1E1E1E" : "#FFFFFF";
 
   useEffect(() => {
-    fetchCoinDetails();
+    fetchCoinDetails(false);
 
-    const interval = setInterval(fetchCoinDetails, 30000);
+    const interval = setInterval(() => fetchCoinDetails(true), 30000);
     return () => clearInterval(interval);
   }, [coinId]);
 
-  const fetchCoinDetails = async () => {
+  const fetchCoinDetails = async (isBackground = false) => {
     try {
-      setLoading(true);
+      if (!isBackground && !refreshing) setLoading(true);
+
+      // مرحله ۱: خوندن کش
+      const cached = await AsyncStorage.getItem(`coin - ${ coinId }`);
+      if (cached && !isBackground && !refreshing) {
+        setCoinData(JSON.parse(cached));
+        setLoading(false);
+      }
+
+      // مرحله ۲: درخواست API
       const res = await fetch(
-        "https://api.coingecko.com/api/v3/coins/" +
-        coinId +
-        "?localization=false&tickers=false&market_data=true&community_data=false&developer_data=false&sparkline=false"
-      );
+        `https://api.coingecko.com/api/v3/coins/${coinId}?localization=false&tickers=false&market_data=true&community_data=false&developer_data=false&sparkline=false
+      `);
       const data = await res.json();
 
       const coin: CoinDetails = {
@@ -68,15 +78,24 @@ export default function CoinDetailsScreen() {
         marketCap: data.market_data.market_cap.usd,
         circulatingSupply: data.market_data.circulating_supply,
         totalSupply: data.market_data.total_supply || 0,
-        maxSupply: data.market_data.max_supply || 0
+        maxSupply: data.market_data.max_supply || 0,
       };
+
+      // مرحله ۳: ذخیره در کش
+      await AsyncStorage.setItem(`coin - ${ coinId }`, JSON.stringify(coin));
 
       setCoinData(coin);
     } catch (error) {
       console.error("Error fetching coin details:", error);
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
+  };
+
+  const onRefresh = () => {
+    setRefreshing(true);
+    fetchCoinDetails(true);
   };
 
   const openFullChart = () => {
@@ -105,31 +124,27 @@ export default function CoinDetailsScreen() {
         compound: "COMPUSDT",
         synthetix: "SNXUSDT",
         "yearn-finance": "YFIUSDT",
-        usdt: "USDTUSDT"
+        usdt: "USDTUSDT",
       };
       return symbolMap[coinId] || coinId.toUpperCase() + "USDT";
-    };
-
-    const symbol = getBinanceSymbol(String(coinId));
+    }; const symbol = getBinanceSymbol(String(coinId));
     const url = "https://www.tradingview.com/chart/?symbol=BINANCE:" + symbol;
     Linking.openURL(url);
   };
 
-  if (loading) {
+  if (loading && !coinData) {
     return (
       <View style={[styles.container, { backgroundColor }, styles.center]}>
         <ActivityIndicator size="large" color={textColor} />
-        <Text style={{ marginTop: 10, color: textColor }}>
-          {isPersian ? "در حال بارگذاری..." : "Loading..."}
-        </Text>
+        <Text style={{ marginTop: 10, color: textColor }}>{t.loading}</Text>
       </View>
     );
-  } if (!coinData) {
+  }
+
+  if (!coinData) {
     return (
       <View style={[styles.container, { backgroundColor }, styles.center]}>
-        <Text style={{ color: textColor }}>
-          {isPersian ? "خطا در بارگذاری اطلاعات" : "Error loading data"}
-        </Text>
+        <Text style={{ color: textColor }}>{t.error}</Text>
       </View>
     );
   }
@@ -146,13 +161,22 @@ export default function CoinDetailsScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor }]}>
-      <ScrollView contentContainerStyle={styles.scrollContent}>
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={textColor}
+          />
+        }
+      >
         {/* کارت بالایی (قیمت) */}
         <View
           style={[styles.headerCard, { backgroundColor: changeBackgroundColor }]}
         >
           <Text style={[styles.coinName, { color: textColor }]}>
-            {coinData.name}
+            {t.coinNames?.[coinId as string] || coinData.name}
           </Text>
           <Text style={[styles.price, { color: textColor }]}>
             {"$" +
@@ -166,7 +190,7 @@ export default function CoinDetailsScreen() {
         {/* چارت */}
         <View style={[styles.chartContainer, { backgroundColor: cardColor }]}>
           <Text style={[styles.chartTitle, { color: textColor }]}>
-            {isPersian ? "نمودار زنده قیمت" : "Live Price Chart"}
+            {t.liveChart}
           </Text>
           <TradingViewChart symbol={String(coinId)} height={450} />
         </View>
@@ -174,25 +198,25 @@ export default function CoinDetailsScreen() {
         {/* آمارهای بازار */}
         <View style={[styles.statsCard, { backgroundColor: cardColor }]}>
           <Text style={[styles.sectionTitle, { color: textColor }]}>
-            {isPersian ? "آمارهای بازار" : "Market Stats"}
+            {t.marketStats}
           </Text>
           <StatRow
-            label={isPersian ? "بالاترین 24h" : "24h High"}
+            label={t.high24h}
             value={"$" + coinData.high24h.toLocaleString()}
             color={textColor}
           />
           <StatRow
-            label={isPersian ? "پایین‌ترین 24h" : "24h Low"}
+            label={t.low24h}
             value={"$" + coinData.low24h.toLocaleString()}
             color={textColor}
           />
           <StatRow
-            label={isPersian ? "حجم معاملات" : "Volume 24h"}
+            label={t.volume24h}
             value={"$" + coinData.volume.toLocaleString()}
             color={textColor}
           />
           <StatRow
-            label={isPersian ? "مارکت کپ" : "Market Cap"}
+            label={t.marketCap}
             value={"$" + coinData.marketCap.toLocaleString()}
             color={textColor}
           />
@@ -201,20 +225,20 @@ export default function CoinDetailsScreen() {
         {/* اطلاعات عرضه */}
         <View style={[styles.statsCard, { backgroundColor: cardColor }]}>
           <Text style={[styles.sectionTitle, { color: textColor }]}>
-            {isPersian ? "اطلاعات عرضه" : "Supply Info"}
+            {t.supplyInfo}
           </Text>
           <StatRow
-            label={isPersian ? "عرضه در گردش" : "Circulating Supply"}
+            label={t.circulatingSupply}
             value={coinData.circulatingSupply.toLocaleString()}
             color={textColor}
           />
           <StatRow
-            label={isPersian ? "عرضه کل" : "Total Supply"}
+            label={t.totalSupply}
             value={coinData.totalSupply.toLocaleString()}
             color={textColor}
           />
           <StatRow
-            label={isPersian ? "حداکثر عرضه" : "Max Supply"}
+            label={t.maxSupply}
             value={coinData.maxSupply.toLocaleString()}
             color={textColor}
           />
@@ -227,7 +251,7 @@ export default function CoinDetailsScreen() {
 const StatRow = ({
   label,
   value,
-  color
+  color,
 }: {
   label: string;
   value: string;
@@ -237,71 +261,70 @@ const StatRow = ({
     <Text style={[styles.statLabel, { color }]}>{label}</Text>
     <Text style={[styles.statValue, { color }]}>{value}</Text>
   </View>
-);
-
-const styles = StyleSheet.create({
+); const styles = StyleSheet.create({
   container: {
-    flex: 1
+    flex: 1,
   },
   center: {
-    justifyContent: "center", alignItems: "center"
+    justifyContent: "center",
+    alignItems: "center",
   },
   scrollContent: {
-    padding: 16
+    padding: 16,
   },
   headerCard: {
     padding: 12,
     borderRadius: 12,
     alignItems: "center",
-    marginBottom: 12
+    marginBottom: 12,
   },
   coinName: {
     fontSize: 18,
     fontWeight: "bold",
-    marginBottom: 4
+    marginBottom: 4,
   },
   price: {
     fontSize: 22,
     fontWeight: "bold",
-    marginBottom: 4
+    marginBottom: 4,
   },
   change: {
     fontSize: 14,
-    fontWeight: "bold"
+    fontWeight: "bold",
   },
   chartContainer: {
     padding: 16,
     borderRadius: 12,
     marginBottom: 16,
-    alignItems: "center"
+    alignItems: "center",
   },
   chartTitle: {
     fontSize: 18,
     fontWeight: "bold",
-    marginBottom: 12
+    marginBottom: 12,
   },
   statsCard: {
     padding: 16,
     borderRadius: 12,
-    marginBottom: 16
+    marginBottom: 16,
   },
   sectionTitle: {
     fontSize: 18,
     fontWeight: "bold",
-    marginBottom: 16
+    marginBottom: 16,
   },
   statRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 12
+    marginBottom: 12,
   },
   statLabel: {
     fontSize: 14,
-    opacity: 0.8
+    opacity: 0.8,
   },
   statValue: {
     fontSize: 14,
-    fontWeight: "600"
-  }
+    fontWeight: "600",
+  },
 });
