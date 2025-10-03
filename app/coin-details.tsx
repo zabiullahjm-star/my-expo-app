@@ -7,13 +7,16 @@ import {
   Linking,
   ActivityIndicator,
   RefreshControl,
+  TouchableOpacity,
+  Modal,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useLocalSearchParams } from "expo-router";
 import { useTheme } from "./ThemeContext";
 import { useLanguage } from "./languageContext";
-import { translations } from "./translations";
+import translations from "./translations";
 import TradingViewChart from "../components/TradingviewChart";
+import { WebView } from "react-native-webview";
 
 type CoinDetails = {
   name: string;
@@ -38,16 +41,21 @@ export default function CoinDetailsScreen() {
   const [coinData, setCoinData] = useState<CoinDetails | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [showWebView, setShowWebView] = useState(false);
 
   const backgroundColor = isDark ? "#121212" : "#F9FAFB";
   const textColor = isDark ? "#FFFFFF" : "#000000";
   const cardColor = isDark ? "#1E1E1E" : "#FFFFFF";
 
   useEffect(() => {
-    fetchCoinDetails(false);
-
-    const interval = setInterval(() => fetchCoinDetails(true), 30000);
-    return () => clearInterval(interval);
+    (async () => {
+      const cached = await AsyncStorage.getItem(`coin - ${coinId}`);
+      if (cached) setCoinData(JSON.parse(cached));
+      setLoading(false);
+      fetchCoinDetails(false);
+      const interval = setInterval(() => fetchCoinDetails(true), 30000);
+      return () => clearInterval(interval);
+    })();
   }, [coinId]);
 
   const fetchCoinDetails = async (isBackground = false) => {
@@ -55,7 +63,7 @@ export default function CoinDetailsScreen() {
       if (!isBackground && !refreshing) setLoading(true);
 
       // مرحله ۱: خوندن کش
-      const cached = await AsyncStorage.getItem(`coin - ${ coinId }`);
+      const cached = await AsyncStorage.getItem(`coin - ${coinId}`);
       if (cached && !isBackground && !refreshing) {
         setCoinData(JSON.parse(cached));
         setLoading(false);
@@ -82,11 +90,11 @@ export default function CoinDetailsScreen() {
       };
 
       // مرحله ۳: ذخیره در کش
-      await AsyncStorage.setItem(`coin - ${ coinId }`, JSON.stringify(coin));
+      await AsyncStorage.setItem(`coin - ${coinId}`, JSON.stringify(coin));
 
       setCoinData(coin);
     } catch (error) {
-      console.error("Error fetching coin details:", error);
+      // کش را تغییر نده، فقط پیام آفلاین نمایش بده
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -98,38 +106,15 @@ export default function CoinDetailsScreen() {
     fetchCoinDetails(true);
   };
 
+  const getBinanceSymbol = (coinId: string) => {
+    const symbolMap = t.binanceSymbols || {};
+    return symbolMap[coinId] || coinId.toUpperCase() + "USDT";
+  };
+  const symbol = getBinanceSymbol(String(coinId));
+  const chartUrl = "https://www.tradingview.com/chart/?symbol=BINANCE:" + symbol;
+
   const openFullChart = () => {
-    const getBinanceSymbol = (coinId: string) => {
-      const symbolMap: Record<string, string> = {
-        bitcoin: "BTCUSDT",
-        ethereum: "ETHUSDT",
-        binancecoin: "BNBUSDT",
-        ripple: "XRPUSDT",
-        dogecoin: "DOGEUSDT",
-        solana: "SOLUSDT",
-        cardano: "ADAUSDT",
-        tron: "TRXUSDT",
-        polkadot: "DOTUSDT",
-        "matic-network": "MATICUSDT",
-        stellar: "XLMUSDT",
-        litecoin: "LTCUSDT",
-        uniswap: "UNIUSDT",
-        chainlink: "LINKUSDT",
-        "bitcoin-cash": "BCHUSDT",
-        monero: "XMRUSDT",
-        "ethereum-classic": "ETCUSDT",
-        tezos: "XTZUSDT",
-        eos: "EOSUSDT",
-        aave: "AAVEUSDT",
-        compound: "COMPUSDT",
-        synthetix: "SNXUSDT",
-        "yearn-finance": "YFIUSDT",
-        usdt: "USDTUSDT",
-      };
-      return symbolMap[coinId] || coinId.toUpperCase() + "USDT";
-    }; const symbol = getBinanceSymbol(String(coinId));
-    const url = "https://www.tradingview.com/chart/?symbol=BINANCE:" + symbol;
-    Linking.openURL(url);
+    setShowWebView(true);
   };
 
   if (loading && !coinData) {
@@ -161,6 +146,23 @@ export default function CoinDetailsScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor }]}>
+      {/* Modal WebView */}
+      <Modal
+        visible={showWebView}
+        animationType="slide"
+        onRequestClose={() => setShowWebView(false)}
+      >
+        <View style={{ flex: 1, backgroundColor: "#fff" }}>
+          <View style={{ padding: 12, backgroundColor: "#2196F3" }}>
+            <TouchableOpacity onPress={() => setShowWebView(false)}>
+              <Text style={{ color: "#fff", fontWeight: "bold", fontSize: 16 }}>
+                {isPersian ? "بستن" : "Close"}
+              </Text>
+            </TouchableOpacity>
+          </View>
+          <WebView source={{ uri: chartUrl }} style={{ flex: 1 }} />
+        </View>
+      </Modal>
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         refreshControl={
@@ -190,33 +192,38 @@ export default function CoinDetailsScreen() {
         {/* چارت */}
         <View style={[styles.chartContainer, { backgroundColor: cardColor }]}>
           <Text style={[styles.chartTitle, { color: textColor }]}>
-            {t.liveChart}
+            {t.coinDetails.liveChart}
           </Text>
           <TradingViewChart symbol={String(coinId)} height={450} />
+          <TouchableOpacity style={styles.fullChartBtn} onPress={openFullChart}>
+            <Text style={{ color: "#2196F3", fontWeight: "bold" }}>
+              {t.viewFullChart}
+            </Text>
+          </TouchableOpacity>
         </View>
 
         {/* آمارهای بازار */}
         <View style={[styles.statsCard, { backgroundColor: cardColor }]}>
           <Text style={[styles.sectionTitle, { color: textColor }]}>
-            {t.marketStats}
+            {t.coinDetails.marketStats}
           </Text>
           <StatRow
-            label={t.high24h}
+            label={t.coinDetails.high24h}
             value={"$" + coinData.high24h.toLocaleString()}
             color={textColor}
           />
           <StatRow
-            label={t.low24h}
+            label={t.coinDetails.low24h}
             value={"$" + coinData.low24h.toLocaleString()}
             color={textColor}
           />
           <StatRow
-            label={t.volume24h}
+            label={t.coinDetails.volume24h}
             value={"$" + coinData.volume.toLocaleString()}
             color={textColor}
           />
           <StatRow
-            label={t.marketCap}
+            label={t.coinDetails.marketCap}
             value={"$" + coinData.marketCap.toLocaleString()}
             color={textColor}
           />
@@ -225,20 +232,20 @@ export default function CoinDetailsScreen() {
         {/* اطلاعات عرضه */}
         <View style={[styles.statsCard, { backgroundColor: cardColor }]}>
           <Text style={[styles.sectionTitle, { color: textColor }]}>
-            {t.supplyInfo}
+            {t.coinDetails.supplyInfo}
           </Text>
           <StatRow
-            label={t.circulatingSupply}
+            label={t.coinDetails.circulatingSupply}
             value={coinData.circulatingSupply.toLocaleString()}
             color={textColor}
           />
           <StatRow
-            label={t.totalSupply}
+            label={t.coinDetails.totalSupply}
             value={coinData.totalSupply.toLocaleString()}
             color={textColor}
           />
           <StatRow
-            label={t.maxSupply}
+            label={t.coinDetails.maxSupply}
             value={coinData.maxSupply.toLocaleString()}
             color={textColor}
           />
@@ -261,7 +268,9 @@ const StatRow = ({
     <Text style={[styles.statLabel, { color }]}>{label}</Text>
     <Text style={[styles.statValue, { color }]}>{value}</Text>
   </View>
-); const styles = StyleSheet.create({
+);
+
+const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
@@ -326,5 +335,12 @@ const StatRow = ({
   statValue: {
     fontSize: 14,
     fontWeight: "600",
+  },
+  fullChartBtn: {
+    marginTop: 10,
+    padding: 8,
+    borderRadius: 8,
+    alignSelf: "center",
+    backgroundColor: "#E3F2FD",
   },
 });

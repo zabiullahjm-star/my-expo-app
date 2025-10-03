@@ -3,12 +3,17 @@ import { View, Text, TouchableOpacity, Linking, StyleSheet } from "react-native"
 import { FontAwesome } from "@expo/vector-icons";
 import { useTheme } from "../ThemeContext";
 import { useLanguage } from "../languageContext";
-import { translations } from "../translations";
+import translations from "../translations";
 
 export default function SupportScreen() {
   const { isDark } = useTheme();
   const { isPersian } = useLanguage();
   const t = isPersian ? translations.fa : translations.en;
+
+  // Fix: fallback for supportTab if not defined
+  const supportTitle =
+    t.supportTab ||
+    (isPersian ? "پشتیبانی" : "Support");
 
   const openLink = (url: string) => Linking.openURL(url);
 
@@ -18,7 +23,7 @@ export default function SupportScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor }]}>
-      <Text style={[styles.title, { color: textColor }]}>{t.supportTab}</Text>
+      <Text style={[styles.title, { color: textColor }]}>{supportTitle}</Text>
       <Text style={[styles.subtitle, { color: subtitleColor }]}>
         {isPersian
           ? "برای ارتباط با ما یکی از روش‌های زیر را انتخاب کنید:"

@@ -1,4 +1,4 @@
-// index.tsx (کد کامل اصلاح شده)
+// index.tsx (نسخه اصلاح شده فقط با بهبودهای ضروری)
 import "react-native-reanimated";
 import React, { useEffect, useState, useCallback } from "react";
 import {
@@ -18,9 +18,8 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useTheme } from "../ThemeContext";
 import UpdateChecker from "../UpdateChecker";
 import { useLanguage } from "../languageContext";
-import { translations } from "../translations";
+import translations from "../translations";
 import { useRouter } from "expo-router";
-
 
 type PriceRecord = {
   usd?: number;
@@ -28,7 +27,7 @@ type PriceRecord = {
 };
 
 const COINS: string[] = [
-  "bitcoin", "ethereum", "binancecoin", "ripple", "dogecoin", "solana",
+  "usdt","bitcoin", "ethereum", "binancecoin", "ripple", "dogecoin", "solana",
   "cardano", "tron", "polkadot", "matic-network", "hyperliquid", "sui",
   "stellar", "litecoin", "whitebit", "uniswap", "mantle", "monero",
   "ethena", "pepe", "aave", "okb", "memecoin", "near", "bittensor",
@@ -45,6 +44,21 @@ const STORAGE_KEYS = {
 
 const App: React.FC = () => {
   const { isDark, toggleTheme } = useTheme();
+  const { isPersian } = useLanguage();
+  const router = useRouter();
+
+  // تعریف متغیرهای رنگی بر اساس تم
+  const backgroundColor = isDark ? "#0f172a" : "#f8fafc";
+  const textColor = isDark ? "#f1f5f9" : "#1e293b";
+  const cardBackgroundColor = isDark ? "#1e293b" : "#ffffff";
+  const searchBackgroundColor = isDark ? "#334155" : "#e2e8f0";
+  const searchTextColor = isDark ? "#f1f5f9" : "#1e293b";
+  const placeholderColor = isDark ? "#94a3b8" : "#64748b";
+  const placeholderLogoBg = isDark ? "#475569" : "#cbd5e1";
+  const placeholderLogoText = isDark ? "#94a3b8" : "#475569";
+
+  // تعریف t از translations
+  const t = isPersian ? translations.fa : translations.en;
 
   const [prices, setPrices] = useState<Record<string, PriceRecord>>({});
   const [coinImages, setCoinImages] = useState<Record<string, string>>({});
@@ -53,52 +67,83 @@ const App: React.FC = () => {
   const [refreshing, setRefreshing] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState<string>("");
-  const { isPersian, toggleLanguage } = useLanguage(); // این خط
-  const t = isPersian ? translations.fa : translations.en; // این خط
-  const router = useRouter();
+  const [offline, setOffline] = useState(false);
 
-  const backgroundColor = isDark ? "#121212" : "#ffffff";
-  const textColor = isDark ? "#ffffff" : "#000000";
-  const cardBackgroundColor = isDark ? "#1e1e1e" : "#fff";
-  const searchBackgroundColor = isDark ? "#2d2d2d" : "#f5f5f5";
-  const searchTextColor = isDark ? "#fff" : "#000";
-  const placeholderColor = isDark ? "#888" : "#666";
-  const placeholderLogoBg = isDark ? "#334155" : "#e5e7eb";
-  const placeholderLogoText = isDark ? "#f1f5f9" : "#374151";
+  // تعریف displayCoins برای فیلتر کردن
+  const displayCoins = COINS.filter(coin => {
+    if (searchQuery === "") return true;
+    const query = searchQuery.toLowerCase();
+    const coinId = coin.toLowerCase();
+    const coinName = t.coinNames && t.coinNames[coin]?.toLowerCase();
+    return coinId.includes(query) || (coinName && coinName.includes(query));
+  });
 
-  const filteredCoins = COINS.filter(coin =>
-    coin.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  // بارگذاری کش اولیه - بهبود یافته برای جلوگیری از صفر شدن
+  useEffect(() => {
+    (async () => {
+      try {
+        const [cachedPrices, cachedImages, cachedUsdt] = await Promise.all([
+          AsyncStorage.getItem(STORAGE_KEYS.PRICES),
+          AsyncStorage.getItem(STORAGE_KEYS.IMAGES),
+          AsyncStorage.getItem(STORAGE_KEYS.USDT),
+        ]);
 
-  // اضافه کردن USDT به اول لیست وقتی جستجو خالی است
-  const displayCoins = searchQuery ? filteredCoins : ['usdt', ...filteredCoins];
+        // فقط اگر داده معتبر داریم، ست می‌کنیم
+        if (cachedPrices) {
+          const parsedPrices = JSON.parse(cachedPrices);
+          if (Object.keys(parsedPrices).length > 0) {
+            setPrices(parsedPrices);
+          }
+        }
 
+        if (cachedImages) {
+          const parsedImages = JSON.parse(cachedImages);
+          if (Object.keys(parsedImages).length > 0) {
+            setCoinImages(parsedImages);
+          }
+        }
+
+        if (cachedUsdt) {
+          const usdtValue = parseFloat(cachedUsdt);
+          if (!isNaN(usdtValue) && usdtValue > 0) {
+            setUsdtToToman(usdtValue);
+          }
+        }
+      } catch (error) {
+        console.log("Error loading cache:", error);
+      } finally {
+        setInitialLoading(false);
+      }
+    })();
+  }, []);
+
+  // دریافت دیتا جدید و آپدیت کش فقط در صورت موفقیت - بهبود یافته
   const fetchCryptoPrices = useCallback(async () => {
     try {
+      setOffline(false);
       const url = "https://api.coingecko.com/api/v3/simple/price?ids=" + COINS.join(",") + "&vs_currencies=usd&include_24hr_change=true";
       const res = await fetch(url);
+
+      if (!res.ok) throw new Error("API response not ok");
+
       const data = (await res.json()) as Record<string, PriceRecord>;
-      setPrices(data);
-      await AsyncStorage.setItem(STORAGE_KEYS.PRICES, JSON.stringify(data));
-    } catch (err) {
-      console.warn("CGk error:", err);
-      setError(t.error);
-      const cached = await AsyncStorage.getItem(STORAGE_KEYS.PRICES);
-      if (cached) {
-        try {
-          setPrices(JSON.parse(cached));
-        } catch {
-          /* ignore */
-        }
+
+      // فقط اگر داده معتبر گرفتیم، آپدیت می‌کنیم
+      if (data && Object.keys(data).length > 0) {
+        setPrices(data);
+        await AsyncStorage.setItem(STORAGE_KEYS.PRICES, JSON.stringify(data));
       }
+    } catch (err) {
+      setOffline(true);
+      // کش قدیمی حفظ می‌شه
     }
   }, []);
 
   const fetchCoinImages = useCallback(async () => {
     try {
+      setOffline(false);
       const response = await fetch("https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=" + COINS.join(",") + "&order=market_cap_desc&per_page=100&page=1&sparkline=false&price_change_percentage=24h");
       const data = await response.json();
-
       if (Array.isArray(data)) {
         const images: Record<string, string> = {};
         data.forEach((coin: any) => {
@@ -106,87 +151,53 @@ const App: React.FC = () => {
             images[coin.id] = coin.image;
           }
         });
-
-        await AsyncStorage.setItem(STORAGE_KEYS.IMAGES, JSON.stringify(images)); setCoinImages(images);
-      }
-    } catch (error) {
-      console.warn("Error fetching coin images:", error);
-      const cached = await AsyncStorage.getItem(STORAGE_KEYS.IMAGES);
-      if (cached) {
-        try {
-          setCoinImages(JSON.parse(cached));
-        } catch {
-          setCoinImages({});
+        if (Object.keys(images).length > 0) {
+          setCoinImages(images);
+          await AsyncStorage.setItem(STORAGE_KEYS.IMAGES, JSON.stringify(images));
         }
-      } else {
-        setCoinImages({});
-      }
-    }
-  }, []);
-
-  const loadCachedImages = useCallback(async () => {
-    try {
-      const cached = await AsyncStorage.getItem(STORAGE_KEYS.IMAGES);
-      if (cached) {
-        const images = JSON.parse(cached);
-        setCoinImages(images);
       }
     } catch (error) {
-      console.warn("Error loading cached images:", error);
+      setOffline(true);
     }
   }, []);
 
   const fetchUSDTtoToman = useCallback(async () => {
     try {
+      setOffline(false);
       const res = await fetch("https://api.wallex.ir/v1/markets");
       const data = await res.json();
       const usdt = data?.result?.symbols?.["USDTTMN"];
       if (usdt && usdt.stats && usdt.stats.lastPrice) {
         const val = parseFloat(usdt.stats.lastPrice);
-        setUsdtToToman(val);
-        await AsyncStorage.setItem(STORAGE_KEYS.USDT, val.toString());
-      } else {
-        setUsdtToToman(105000);
+        if (!isNaN(val) && val > 0) {
+          setUsdtToToman(val);
+          await AsyncStorage.setItem(STORAGE_KEYS.USDT, val.toString());
+        }
       }
     } catch (err) {
-      console.warn("Wallex error:", err);
-      const cached = await AsyncStorage.getItem(STORAGE_KEYS.USDT);
-      if (cached) {
-        const parsed = parseFloat(cached);
-        if (!Number.isNaN(parsed)) setUsdtToToman(parsed);
-        else setUsdtToToman(105000);
-      } else {
-        setUsdtToToman(105000);
-      }
+      setOffline(true);
     }
   }, []);
 
-  const loadData = useCallback(
-    async (firstTime = false) => {
-      if (firstTime) {
-        setInitialLoading(true);
-        await loadCachedImages();
-      }
-      setError(null);
-      await Promise.allSettled([
-        fetchCryptoPrices(),
-        fetchCoinImages(),
-        fetchUSDTtoToman()
-      ]);
-      if (firstTime) setInitialLoading(false);
-    },
-    [fetchCryptoPrices, fetchCoinImages, fetchUSDTtoToman, loadCachedImages]
-  );
+  const loadData = useCallback(async () => {
+    setError(null);
+    await Promise.allSettled([
+      fetchCryptoPrices(),
+      fetchCoinImages(),
+      fetchUSDTtoToman()
+    ]);
+  }, [fetchCryptoPrices, fetchCoinImages, fetchUSDTtoToman]);
 
+  // آپدیت دیتا هر ۳۰ ثانیه
   useEffect(() => {
-    loadData(true);
-    const interval = setInterval(() => loadData(false), 30000);
+    loadData();
+    const interval = setInterval(loadData, 30000);
     return () => clearInterval(interval);
   }, [loadData]);
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await loadData(false);
+    await loadData();
     setRefreshing(false);
   };
 
@@ -223,42 +234,96 @@ const App: React.FC = () => {
         <Text style={{ marginTop: 10, color: textColor }}>{t.loading}</Text>
       </SafeAreaView>
     );
-  }
-
-  if (error && Object.keys(prices).length === 0) {
+  } if (offline) {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor }, styles.center]}>
-        <Text style={{ color: "red", marginBottom: 10, textAlign: "center" }}>{error}</Text>
-        <TouchableOpacity onPress={() => loadData(true)}>
-          <Text style={{ color: "#2196f3" }}>{t.retry}</Text>
-        </TouchableOpacity>
+        <Text style={{ color: "orange", marginBottom: 10, textAlign: "center" }}>
+          You are offline, price can't be up to date.
+        </Text>
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          }
+          showsVerticalScrollIndicator={false}
+        >
+          {displayCoins.map((coin) => {
+            const isUSDT = coin === 'usdt';
+            const coinData = prices[coin] || (isUSDT ? { usd: 1, usd_24h_change: 0 } : null);
+            const usdtPrice = coinData?.usd;
+            const change = coinData?.usd_24h_change;
+            const changeColor = change && change > 0 ? "#1db954" : change && change < 0 ? "#e53935" : "#666";
+            return (
+              <View
+                key={coin}
+                style={[
+                  styles.cardRow,
+                  {
+                    backgroundColor: cardBackgroundColor,
+                    shadowOpacity: isDark ? 0 : 0.1,
+                    borderWidth: 1,
+                    borderColor: change && change > 0 ?
+                      (isDark ? "#4db872ff" : "#4CAF50") :
+                      change && change < 0 ?
+                        (isDark ? "#ec706ee3" : "#e74b3fff") :
+                        "transparent",
+                  },
+                ]}
+              >
+                <View style={styles.coinInfo}>
+                  {renderCoinLogo(coin)}
+                  <Text
+                    style={[styles.symbol, { color: textColor }]}
+                    numberOfLines={1}
+                    ellipsizeMode="tail"
+                  >
+                    {t.coinNames && coin in t.coinNames ? t.coinNames[coin] : coin.toUpperCase()}
+                  </Text>
+                </View>
+                <View style={styles.centerCol}>
+                  <Text style={[styles.price, { color: textColor }]}>
+                    {usdtPrice ? (usdtPrice < 0.001 ? usdtPrice.toFixed(8) : Number(usdtPrice).toLocaleString(isPersian ? 'fa-IR' : 'en-US')) : "—"}
+                  </Text>
+                  <Text style={[styles.change, { color: changeColor }]}>
+                    {change !== undefined && change !== null ? change.toFixed(2) + "%" : "—"}
+                  </Text>
+                </View>
+                <View style={styles.rightCol}>
+                  <Text style={[styles.price, { color: textColor }]}>
+                    {usdtPrice && usdtToToman ? (usdtPrice < 0.001 ? (usdtPrice * usdtToToman).toFixed(0) + " تومان" : Math.round(usdtPrice * usdtToToman).toLocaleString(isPersian ? 'fa-IR' : 'en-US')) : "—"}
+                  </Text>
+                </View>
+              </View>
+            );
+          })}
+        </ScrollView>
       </SafeAreaView>
     );
   }
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor }]}><View style={[styles.searchContainer, { backgroundColor: searchBackgroundColor }]}>
-      <TextInput
-        style={[styles.searchInput, { color: searchTextColor }]}
-        placeholder={t.searchPlaceholder}
-        placeholderTextColor={placeholderColor}
-        value={searchQuery}
-        onChangeText={setSearchQuery}
-      />
-      {searchQuery.length > 0 && (
-        <TouchableOpacity
-          style={styles.clearButton}
-          onPress={() => setSearchQuery("")}
-        >
-          <Text style={[styles.clearText, { color: placeholderColor }]}>{"×"}</Text>
-        </TouchableOpacity>
-      )}
-    </View>
+    <SafeAreaView style={[styles.container, { backgroundColor }]}>
+      <View style={[styles.searchContainer, { backgroundColor: searchBackgroundColor }]}>
+        <TextInput
+          style={[styles.searchInput, { color: searchTextColor }]}
+          placeholder={t.searchPlaceholder}
+          placeholderTextColor={placeholderColor}
+          value={searchQuery}
+          onChangeText={setSearchQuery}
+        />
+        {searchQuery.length > 0 && (
+          <TouchableOpacity
+            style={styles.clearButton}
+            onPress={() => setSearchQuery("")}
+          >
+            <Text style={[styles.clearText, { color: placeholderColor }]}>{"×"}</Text>
+          </TouchableOpacity>
+        )}
+      </View>
 
       <View style={[styles.columnsHeader, { backgroundColor }]}>
         <View style={styles.coinInfoHeader}>
-          <Text style={[styles.headerText, { color: textColor }]}>{t.coinName}</Text>
-        </View>
+          <Text style={[styles.headerText, { color: textColor }]}>{t.coinName}</Text></View>
         <View style={styles.centerColHeader}>
           <Text style={[styles.headerText, { color: textColor }]}>{t.usdtPrice}</Text>
         </View>
@@ -276,16 +341,15 @@ const App: React.FC = () => {
       >
         {displayCoins.map((coin) => {
           const isUSDT = coin === 'usdt';
-          const coinData = isUSDT ? { usd: 1, usd_24h_change: 0 } : prices[coin];
+          const coinData = prices[coin] || (isUSDT ? { usd: 1, usd_24h_change: 0 } : null);
           const usdtPrice = coinData?.usd;
           const change = coinData?.usd_24h_change;
-
           const changeColor = change && change > 0 ? "#1db954" : change && change < 0 ? "#e53935" : "#666";
 
           return (
             <TouchableOpacity
               key={coin}
-              onPress={() => router.push(`./coin-details?coinId=${coin}`)}
+              onPress={() => router.push(`/coin-details?coinId=${coin}`)}
             >
               <View
                 style={[
@@ -293,12 +357,12 @@ const App: React.FC = () => {
                   {
                     backgroundColor: cardBackgroundColor,
                     shadowOpacity: isDark ? 0 : 0.1,
-                    borderWidth: 1, // حاشیه دور کامل
+                    borderWidth: 1,
                     borderColor: change && change > 0 ?
-                      (isDark ? "#4db872ff" : "#4CAF50") : // سبز برای صعود
+                      (isDark ? "#4db872ff" : "#4CAF50") :
                       change && change < 0 ?
-                        (isDark ? "#ec706ee3" : "#e74b3fff") : // قرمز برای نزول
-                        "transparent", // حالت عادی
+                        (isDark ? "#ec706ee3" : "#e74b3fff") :
+                        "transparent",
                   },
                 ]}
               >
@@ -309,7 +373,7 @@ const App: React.FC = () => {
                     numberOfLines={1}
                     ellipsizeMode="tail"
                   >
-                    {t.coinNames && coin in t.coinNames ? t.coinNames[coin as keyof typeof t.coinNames] : coin.toUpperCase()}
+                    {t.coinNames && coin in t.coinNames ? t.coinNames[coin] : coin.toUpperCase()}
                   </Text>
                 </View>
 
@@ -332,7 +396,7 @@ const App: React.FC = () => {
           );
         })}
 
-        {displayCoins.length === 0 && (
+        {displayCoins.length === 0 && searchQuery !== "" && (
           <View style={styles.noResults}>
             <Text style={[styles.noResultsText, { color: textColor }]}>
               {t.noResults} "{searchQuery}" {t.notFound}
@@ -340,8 +404,6 @@ const App: React.FC = () => {
           </View>
         )}
       </ScrollView>
-      {/* دکمه تغییر زبان */}
-   
 
       <TouchableOpacity
         onPress={toggleTheme}
@@ -359,7 +421,9 @@ const App: React.FC = () => {
       <UpdateChecker />
     </SafeAreaView>
   );
-}; const styles = StyleSheet.create({
+};
+
+const styles = StyleSheet.create({
   container: {
     flex: 1,
     paddingTop: Platform.OS === 'ios' ? 10 : 20,
@@ -432,7 +496,6 @@ const App: React.FC = () => {
     elevation: 2,
     borderWidth: 1,
     borderColor: "transparent"
-
   },
   coinInfo: {
     flexDirection: "row",
@@ -482,18 +545,6 @@ const App: React.FC = () => {
   fab: {
     position: "absolute",
     bottom: 20,
-    right: 20,
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    borderWidth: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    elevation: 6,
-  },
-  langButton: {
-    position: "absolute",
-    bottom: 80,
     right: 20,
     width: 48,
     height: 48,
