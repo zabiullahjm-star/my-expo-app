@@ -9,6 +9,7 @@ import {
   RefreshControl,
   TouchableOpacity,
   Modal,
+  Image,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useLocalSearchParams } from "expo-router";
@@ -30,6 +31,12 @@ type CoinDetails = {
   circulatingSupply: number;
   totalSupply: number;
   maxSupply: number;
+  lastUpdated: number;
+};
+
+const STORAGE_KEYS = {
+  COIN_DATA: (coinId: string) => `COIN_DATA_${coinId}`,
+  CHART_IMAGE: (coinId: string) => `CHART_IMAGE_${coinId}`,
 };
 
 export default function CoinDetailsScreen() {
@@ -39,40 +46,57 @@ export default function CoinDetailsScreen() {
   const t = isPersian ? translations.fa : translations.en;
 
   const [coinData, setCoinData] = useState<CoinDetails | null>(null);
+  const [chartImage, setChartImage] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [offline, setOffline] = useState(false);
   const [showWebView, setShowWebView] = useState(false);
 
   const backgroundColor = isDark ? "#121212" : "#F9FAFB";
   const textColor = isDark ? "#FFFFFF" : "#000000";
   const cardColor = isDark ? "#1E1E1E" : "#FFFFFF";
 
+  // بارگذاری کش اولیه
   useEffect(() => {
-    (async () => {
-      const cached = await AsyncStorage.getItem(`coin - ${coinId}`);
-      if (cached) setCoinData(JSON.parse(cached));
+    loadCachedData();
+    const interval = setInterval(() => fetchCoinDetails(true), 30000);
+    return () => clearInterval(interval);
+  }, [coinId]);
+
+  const loadCachedData = async () => {
+    try {
+      const [cachedCoinData, cachedChartImage] = await Promise.all([
+        AsyncStorage.getItem(STORAGE_KEYS.COIN_DATA(String(coinId))),
+        AsyncStorage.getItem(STORAGE_KEYS.CHART_IMAGE(String(coinId))),
+      ]);
+
+      if (cachedCoinData) {
+        const parsedData = JSON.parse(cachedCoinData);
+        setCoinData(parsedData);
+      }
+
+      if (cachedChartImage) {
+        setChartImage(cachedChartImage);
+      }
+    } catch (error) {
+      console.log("Error loading cache:", error);
+    } finally {
       setLoading(false);
       fetchCoinDetails(false);
-      const interval = setInterval(() => fetchCoinDetails(true), 30000);
-      return () => clearInterval(interval);
-    })();
-  }, [coinId]);
+    }
+  };
 
   const fetchCoinDetails = async (isBackground = false) => {
     try {
+      setOffline(false);
       if (!isBackground && !refreshing) setLoading(true);
 
-      // مرحله ۱: خوندن کش
-      const cached = await AsyncStorage.getItem(`coin - ${coinId}`);
-      if (cached && !isBackground && !refreshing) {
-        setCoinData(JSON.parse(cached));
-        setLoading(false);
-      }
-
-      // مرحله ۲: درخواست API
       const res = await fetch(
         `https://api.coingecko.com/api/v3/coins/${coinId}?localization=false&tickers=false&market_data=true&community_data=false&developer_data=false&sparkline=false
       `);
+
+      if (!res.ok) throw new Error("API response not ok");
+
       const data = await res.json();
 
       const coin: CoinDetails = {
@@ -87,17 +111,34 @@ export default function CoinDetailsScreen() {
         circulatingSupply: data.market_data.circulating_supply,
         totalSupply: data.market_data.total_supply || 0,
         maxSupply: data.market_data.max_supply || 0,
+        lastUpdated: Date.now(),
       };
 
-      // مرحله ۳: ذخیره در کش
-      await AsyncStorage.setItem(`coin - ${coinId}`, JSON.stringify(coin));
+      // فقط اگر داده معتبر گرفتیم، آپدیت می‌کنیم
+      if (coin.price && coin.marketCap) {
+        setCoinData(coin);
+        await AsyncStorage.setItem(STORAGE_KEYS.COIN_DATA(String(coinId)), JSON.stringify(coin));
+      }
 
-      setCoinData(coin);
+      // کش کردن چارت
+      await cacheChartImage();
+
     } catch (error) {
-      // کش را تغییر نده، فقط پیام آفلاین نمایش بده
+      setOffline(true);
+      // کش قدیمی حفظ می‌شه
     } finally {
       setLoading(false);
       setRefreshing(false);
+    }
+  }; const cacheChartImage = async () => {
+    try {
+      // اینجا می‌تونی از TradingView screenshot بگیر یا یه تصویر ثابت ذخیره کنی
+      // برای نمونه، یه placeholder ذخیره می‌کنم
+      const chartPlaceholder = "chart_placeholder_url"; // جایگزین کن با منطق واقعی
+      setChartImage(chartPlaceholder);
+      await AsyncStorage.setItem(STORAGE_KEYS.CHART_IMAGE(String(coinId)), chartPlaceholder);
+    } catch (error) {
+      console.log("Error caching chart image:", error);
     }
   };
 
@@ -110,11 +151,26 @@ export default function CoinDetailsScreen() {
     const symbolMap = t.binanceSymbols || {};
     return symbolMap[coinId] || coinId.toUpperCase() + "USDT";
   };
+
   const symbol = getBinanceSymbol(String(coinId));
   const chartUrl = "https://www.tradingview.com/chart/?symbol=BINANCE:" + symbol;
 
   const openFullChart = () => {
     setShowWebView(true);
+  };
+
+  // تابع برای نمایش زمان آخرین بروزرسانی
+  const getLastUpdatedText = () => {
+    if (!coinData?.lastUpdated) return "";
+
+    const now = Date.now();
+    const diffInMinutes = Math.floor((now - coinData.lastUpdated) / (1000 * 60));
+
+    if (diffInMinutes < 1) return isPersian ? "هم اکنون" : "Just now";
+    if (diffInMinutes < 60) return isPersian ? `${diffInMinutes} دقیقه پیش` : `${diffInMinutes} minutes ago`;
+
+    const diffInHours = Math.floor(diffInMinutes / 60);
+    return isPersian ? `${diffInHours} ساعت پیش` : `${diffInHours} hours ago`;
   };
 
   if (loading && !coinData) {
@@ -130,6 +186,9 @@ export default function CoinDetailsScreen() {
     return (
       <View style={[styles.container, { backgroundColor }, styles.center]}>
         <Text style={{ color: textColor }}>{t.error}</Text>
+        <TouchableOpacity onPress={onRefresh} style={styles.retryButton}>
+          <Text style={{ color: textColor }}>{t.retry}</Text>
+        </TouchableOpacity>
       </View>
     );
   }
@@ -163,6 +222,7 @@ export default function CoinDetailsScreen() {
           <WebView source={{ uri: chartUrl }} style={{ flex: 1 }} />
         </View>
       </Modal>
+
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         refreshControl={
@@ -173,7 +233,17 @@ export default function CoinDetailsScreen() {
           />
         }
       >
-        {/* کارت بالایی (قیمت) */}
+        {/* وضعیت آفلاین */}
+        {offline && (
+          <View style={[styles.offlineBanner, { backgroundColor: "#FFA000" }]}>
+            <Text style={styles.offlineText}>
+              {isPersian ? "حالت آفلاین - نمایش آخرین داده‌های ذخیره شده" : "Offline - Showing last saved data"}
+            </Text>
+            <Text style={styles.lastUpdatedText}>
+              {getLastUpdatedText()}
+            </Text>
+          </View>
+        )}{/* کارت بالایی (قیمت) */}
         <View
           style={[styles.headerCard, { backgroundColor: changeBackgroundColor }]}
         >
@@ -181,11 +251,10 @@ export default function CoinDetailsScreen() {
             {t.coinNames?.[coinId as string] || coinData.name}
           </Text>
           <Text style={[styles.price, { color: textColor }]}>
-            {"$" +
-              coinData.price.toLocaleString(isPersian ? "fa-IR" : "en-US")}
+            {"$" + (coinData.price || 0).toLocaleString(isPersian ? "fa-IR" : "en-US")}
           </Text>
           <Text style={[styles.change, { color: changeColor }]}>
-            {(coinData.change24h >= 0 ? "+" : "") + coinData.change24h + "%"}
+            {(coinData.change24h >= 0 ? "+" : "") + (coinData.change24h || 0).toFixed(2) + "%"}
           </Text>
         </View>
 
@@ -194,7 +263,17 @@ export default function CoinDetailsScreen() {
           <Text style={[styles.chartTitle, { color: textColor }]}>
             {t.coinDetails.liveChart}
           </Text>
-          <TradingViewChart symbol={String(coinId)} height={450} />
+
+          {chartImage ? (
+            <Image
+              source={{ uri: chartImage }}
+              style={styles.chartImage}
+              resizeMode="contain"
+            />
+          ) : (
+            <TradingViewChart symbol={String(coinId)} height={450} />
+          )}
+
           <TouchableOpacity style={styles.fullChartBtn} onPress={openFullChart}>
             <Text style={{ color: "#2196F3", fontWeight: "bold" }}>
               {t.viewFullChart}
@@ -209,22 +288,22 @@ export default function CoinDetailsScreen() {
           </Text>
           <StatRow
             label={t.coinDetails.high24h}
-            value={"$" + coinData.high24h.toLocaleString()}
+            value={"$" + (coinData.high24h || 0).toLocaleString()}
             color={textColor}
           />
           <StatRow
             label={t.coinDetails.low24h}
-            value={"$" + coinData.low24h.toLocaleString()}
+            value={"$" + (coinData.low24h || 0).toLocaleString()}
             color={textColor}
           />
           <StatRow
             label={t.coinDetails.volume24h}
-            value={"$" + coinData.volume.toLocaleString()}
+            value={"$" + (coinData.volume || 0).toLocaleString()}
             color={textColor}
           />
           <StatRow
             label={t.coinDetails.marketCap}
-            value={"$" + coinData.marketCap.toLocaleString()}
+            value={"$" + (coinData.marketCap || 0).toLocaleString()}
             color={textColor}
           />
         </View>
@@ -236,17 +315,17 @@ export default function CoinDetailsScreen() {
           </Text>
           <StatRow
             label={t.coinDetails.circulatingSupply}
-            value={coinData.circulatingSupply.toLocaleString()}
+            value={(coinData.circulatingSupply || 0).toLocaleString()}
             color={textColor}
           />
           <StatRow
             label={t.coinDetails.totalSupply}
-            value={coinData.totalSupply.toLocaleString()}
+            value={(coinData.totalSupply || 0).toLocaleString()}
             color={textColor}
           />
           <StatRow
             label={t.coinDetails.maxSupply}
-            value={coinData.maxSupply.toLocaleString()}
+            value={(coinData.maxSupply || 0).toLocaleString()}
             color={textColor}
           />
         </View>
@@ -289,8 +368,7 @@ const styles = StyleSheet.create({
   },
   coinName: {
     fontSize: 18,
-    fontWeight: "bold",
-    marginBottom: 4,
+    fontWeight: "bold", marginBottom: 4,
   },
   price: {
     fontSize: 22,
@@ -311,6 +389,11 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "bold",
     marginBottom: 12,
+  },
+  chartImage: {
+    width: '100%',
+    height: 450,
+    borderRadius: 8,
   },
   statsCard: {
     padding: 16,
@@ -342,5 +425,28 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     alignSelf: "center",
     backgroundColor: "#E3F2FD",
+  },
+  offlineBanner: {
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 12,
+    alignItems: "center",
+  },
+  offlineText: {
+    color: "#000",
+    fontWeight: "bold",
+    textAlign: "center",
+  },
+  lastUpdatedText: {
+    color: "#000",
+    fontSize: 12,
+    marginTop: 4,
+    opacity: 0.8,
+  },
+  retryButton: {
+    marginTop: 16,
+    padding: 12,
+    backgroundColor: "#2196F3",
+    borderRadius: 8,
   },
 });

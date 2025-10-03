@@ -27,7 +27,7 @@ type PriceRecord = {
 };
 
 const COINS: string[] = [
-  "usdt","bitcoin", "ethereum", "binancecoin", "ripple", "dogecoin", "solana",
+  "usdt", "bitcoin", "ethereum", "binancecoin", "ripple", "dogecoin", "solana",
   "cardano", "tron", "polkadot", "matic-network", "hyperliquid", "sui",
   "stellar", "litecoin", "whitebit", "uniswap", "mantle", "monero",
   "ethena", "pepe", "aave", "okb", "memecoin", "near", "bittensor",
@@ -236,10 +236,21 @@ const App: React.FC = () => {
     );
   } if (offline) {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor }, styles.center]}>
+      <SafeAreaView style={[styles.container, { backgroundColor }]}>
         <Text style={{ color: "orange", marginBottom: 10, textAlign: "center" }}>
           You are offline, price can't be up to date.
         </Text>
+        <View style={[styles.columnsHeader, { backgroundColor }]}>
+          <View style={styles.coinInfoHeader}>
+            <Text style={[styles.headerText, { color: textColor }]}>{t.coinName}</Text>
+          </View>
+          <View style={styles.centerColHeader}>
+            <Text style={[styles.headerText, { color: textColor }]}>{t.usdtPrice}</Text>
+          </View>
+          <View style={styles.rightColHeader}>
+            <Text style={[styles.headerText, { color: textColor }]}>{t.tomanPrice}</Text>
+          </View>
+        </View>
         <ScrollView
           contentContainerStyle={styles.scrollContent}
           refreshControl={
