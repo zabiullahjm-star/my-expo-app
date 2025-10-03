@@ -265,46 +265,50 @@ const App: React.FC = () => {
             const change = coinData?.usd_24h_change;
             const changeColor = change && change > 0 ? "#1db954" : change && change < 0 ? "#e53935" : "#666";
             return (
-              <View
+              <TouchableOpacity
                 key={coin}
-                style={[
-                  styles.cardRow,
-                  {
-                    backgroundColor: cardBackgroundColor,
-                    shadowOpacity: isDark ? 0 : 0.1,
-                    borderWidth: 1,
-                    borderColor: change && change > 0 ?
-                      (isDark ? "#4db872ff" : "#4CAF50") :
-                      change && change < 0 ?
-                        (isDark ? "#ec706ee3" : "#e74b3fff") :
-                        "transparent",
-                  },
-                ]}
+                onPress={() => router.push(`/coin-details?coinId=${coin}`)}
               >
-                <View style={styles.coinInfo}>
-                  {renderCoinLogo(coin)}
-                  <Text
-                    style={[styles.symbol, { color: textColor }]}
-                    numberOfLines={1}
-                    ellipsizeMode="tail"
-                  >
-                    {t.coinNames && coin in t.coinNames ? t.coinNames[coin] : coin.toUpperCase()}
-                  </Text>
+                <View
+                  style={[
+                    styles.cardRow,
+                    {
+                      backgroundColor: cardBackgroundColor,
+                      shadowOpacity: isDark ? 0 : 0.1,
+                      borderWidth: 1,
+                      borderColor: change && change > 0 ?
+                        (isDark ? "#4db872ff" : "#4CAF50") :
+                        change && change < 0 ?
+                          (isDark ? "#ec706ee3" : "#e74b3fff") :
+                          "transparent",
+                    },
+                  ]}
+                >
+                  <View style={styles.coinInfo}>
+                    {renderCoinLogo(coin)}
+                    <Text
+                      style={[styles.symbol, { color: textColor }]}
+                      numberOfLines={1}
+                      ellipsizeMode="tail"
+                    >
+                      {t.coinNames && coin in t.coinNames ? t.coinNames[coin as keyof typeof t.coinNames] : coin.toUpperCase()}
+                    </Text>
+                  </View>
+                  <View style={styles.centerCol}>
+                    <Text style={[styles.price, { color: textColor }]}>
+                      {usdtPrice ? (usdtPrice < 0.001 ? usdtPrice.toFixed(8) : Number(usdtPrice).toLocaleString(isPersian ? 'fa-IR' : 'en-US')) : "۰"}
+                    </Text>
+                    <Text style={[styles.change, { color: changeColor }]}>
+                      {change !== undefined && change !== null ? change.toFixed(2) + "%" : "۰%"}
+                    </Text>
+                  </View>
+                  <View style={styles.rightCol}>
+                    <Text style={[styles.price, { color: textColor }]}>
+                      {usdtPrice && usdtToToman ? (usdtPrice < 0.001 ? (usdtPrice * usdtToToman).toFixed(0) + " تومان" : Math.round(usdtPrice * usdtToToman).toLocaleString(isPersian ? 'fa-IR' : 'en-US')) : "۰ تومان"}
+                    </Text>
+                  </View>
                 </View>
-                <View style={styles.centerCol}>
-                  <Text style={[styles.price, { color: textColor }]}>
-                    {usdtPrice ? (usdtPrice < 0.001 ? usdtPrice.toFixed(8) : Number(usdtPrice).toLocaleString(isPersian ? 'fa-IR' : 'en-US')) : "—"}
-                  </Text>
-                  <Text style={[styles.change, { color: changeColor }]}>
-                    {change !== undefined && change !== null ? change.toFixed(2) + "%" : "—"}
-                  </Text>
-                </View>
-                <View style={styles.rightCol}>
-                  <Text style={[styles.price, { color: textColor }]}>
-                    {usdtPrice && usdtToToman ? (usdtPrice < 0.001 ? (usdtPrice * usdtToToman).toFixed(0) + " تومان" : Math.round(usdtPrice * usdtToToman).toLocaleString(isPersian ? 'fa-IR' : 'en-US')) : "—"}
-                  </Text>
-                </View>
-              </View>
+              </TouchableOpacity>
             );
           })}
         </ScrollView>
