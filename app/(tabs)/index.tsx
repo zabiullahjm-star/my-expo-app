@@ -74,8 +74,14 @@ const App: React.FC = () => {
     if (searchQuery === "") return true;
     const query = searchQuery.toLowerCase();
     const coinId = coin.toLowerCase();
+    if (coinId.includes(query)) return true;
+    const persianName = t.coinNames?.[coin]?.toLowerCase();
+    if (persianName && persianName.includes(query)) return true;
+    const symbol = coin.toUpperCase();
+    if (symbol.includes(query.toUpperCase())) return true;
     const coinName = t.coinNames && t.coinNames[coin]?.toLowerCase();
     return coinId.includes(query) || (coinName && coinName.includes(query));
+    return false
   });
 
   // بارگذاری کش اولیه - بهبود یافته برای جلوگیری از صفر شدن
@@ -238,7 +244,7 @@ const App: React.FC = () => {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor }]}>
         <Text style={{ color: "orange", marginBottom: 10, textAlign: "center" }}>
-          You are offline, price can't be up to date.
+          {t.offlineMessage}
         </Text>
         <View style={[styles.columnsHeader, { backgroundColor }]}>
           <View style={styles.coinInfoHeader}>
@@ -312,6 +318,22 @@ const App: React.FC = () => {
             );
           })}
         </ScrollView>
+
+
+
+        <TouchableOpacity
+          onPress={toggleTheme}
+          style={[
+            styles.fab,
+            {
+              backgroundColor: isDark ? "#1f2937" : "#fff",
+              borderColor: isDark ? "#334155" : "#e5e7eb"
+            },
+          ]}
+        >
+          <Text style={{ fontSize: 18 }}>{isDark ? "🌙" : "☀️"}</Text>
+        </TouchableOpacity>
+        <UpdateChecker />
       </SafeAreaView>
     );
   }

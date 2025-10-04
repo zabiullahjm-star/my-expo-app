@@ -11,10 +11,10 @@ import {
   Modal,
   Image,
 } from "react-native";
+import {ThemeProvider , useTheme} from "./ThemeContext"
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useLocalSearchParams } from "expo-router";
-import { useTheme } from "./ThemeContext";
-import { useLanguage } from "./languageContext";
+import {LanguageProvider, useLanguage } from "./languageContext";
 import translations from "./translations";
 import TradingViewChart from "../components/TradingviewChart";
 import { WebView } from "react-native-webview";
@@ -39,7 +39,7 @@ const STORAGE_KEYS = {
   CHART_IMAGE: (coinId: string) => `CHART_IMAGE_${coinId}`,
 };
 
-export default function CoinDetailsScreen() {
+function CoinDetailsContent() {
   const { coinId } = useLocalSearchParams();
   const { isDark } = useTheme();
   const { isPersian } = useLanguage();
@@ -166,11 +166,11 @@ export default function CoinDetailsScreen() {
     const now = Date.now();
     const diffInMinutes = Math.floor((now - coinData.lastUpdated) / (1000 * 60));
 
-    if (diffInMinutes < 1) return isPersian ? "هم اکنون" : "Just now";
-    if (diffInMinutes < 60) return isPersian ? `${diffInMinutes} دقیقه پیش` : `${diffInMinutes} minutes ago`;
+    if (diffInMinutes < 1) return t.coinDetails.lastUpdatedText.justNow;
+    if (diffInMinutes < 60) return `${diffInMinutes} ${t.coinDetails.lastUpdatedText.minutesAgo}`;
 
     const diffInHours = Math.floor(diffInMinutes / 60);
-    return isPersian ? `${diffInHours} ساعت پیش` : `${diffInHours} hours ago`;
+    return `${diffInHours} ${t.coinDetails.lastUpdatedText.hoursAgo}`;
   };
 
   if (loading && !coinData) {
@@ -450,3 +450,13 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
 });
+// این قسمت رو اضافه کن
+export default function CoinDetailsScreen() {
+  return (
+    <ThemeProvider>
+      <LanguageProvider>
+        <CoinDetailsContent />
+      </LanguageProvider>
+    </ThemeProvider>
+  );
+}
