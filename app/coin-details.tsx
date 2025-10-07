@@ -11,10 +11,10 @@ import {
   Modal,
   Image,
 } from "react-native";
-import {ThemeProvider , useTheme} from "./ThemeContext"
+import { ThemeProvider, useTheme } from "./ThemeContext"
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useLocalSearchParams } from "expo-router";
-import {LanguageProvider, useLanguage } from "./languageContext";
+import { LanguageProvider, useLanguage } from "./languageContext";
 import translations from "./translations";
 import TradingViewChart from "../components/TradingviewChart";
 import { WebView } from "react-native-webview";
@@ -44,8 +44,20 @@ function CoinDetailsContent() {
   const { isDark } = useTheme();
   const { isPersian } = useLanguage();
   const t = isPersian ? translations.fa : translations.en;
-
-  const [coinData, setCoinData] = useState<CoinDetails | null>(null);
+  const [coinData, setCoinData] = useState<CoinDetails>({
+    name: String(coinId),
+    symbol: String(coinId).toUpperCase(),
+    price: 0,
+    change24h: 0,
+    high24h: 0,
+    low24h: 0,
+    volume: 0,
+    marketCap: 0,
+    circulatingSupply: 0,
+    totalSupply: 0,
+    maxSupply: 0,
+    lastUpdated: 0,
+  });
   const [chartImage, setChartImage] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -73,6 +85,9 @@ function CoinDetailsContent() {
       if (cachedCoinData) {
         const parsedData = JSON.parse(cachedCoinData);
         setCoinData(parsedData);
+      } else {
+        // اگر کش نبود، همون state اولیه (صفرها) میمونه
+        setLoading(false);
       }
 
       if (cachedChartImage) {
@@ -82,14 +97,16 @@ function CoinDetailsContent() {
       console.log("Error loading cache:", error);
     } finally {
       setLoading(false);
-      fetchCoinDetails(false);
+      // همیشه ۱ ثانیه بعد از لود کامل صفحه
+      setTimeout(() => {
+        fetchCoinDetails(false);
+      }, 1500);
     }
   };
 
   const fetchCoinDetails = async (isBackground = false) => {
     try {
       setOffline(false);
-      if (!isBackground && !refreshing) setLoading(true);
 
       const res = await fetch(
         `https://api.coingecko.com/api/v3/coins/${coinId}?localization=false&tickers=false&market_data=true&community_data=false&developer_data=false&sparkline=false
@@ -113,12 +130,13 @@ function CoinDetailsContent() {
         maxSupply: data.market_data.max_supply || 0,
         lastUpdated: Date.now(),
       };
-
-      // فقط اگر داده معتبر گرفتیم، آپدیت می‌کنیم
-      if (coin.price && coin.marketCap) {
-        setCoinData(coin);
+      // فقط اگر داده معتبر گرفتیم، کش رو آپدیت می‌کنیم (کش قدیمی حفظ میشه)
+      if (coin.price !== undefined && coin.marketCap !== undefined) {
         await AsyncStorage.setItem(STORAGE_KEYS.COIN_DATA(String(coinId)), JSON.stringify(coin));
       }
+      // همیشه داده رو نمایش بده (حتی اگر صفر باشه)
+      setCoinData(coin);
+
 
       // کش کردن چارت
       await cacheChartImage();
@@ -127,7 +145,6 @@ function CoinDetailsContent() {
       setOffline(true);
       // کش قدیمی حفظ می‌شه
     } finally {
-      setLoading(false);
       setRefreshing(false);
     }
   }; const cacheChartImage = async () => {
@@ -173,7 +190,7 @@ function CoinDetailsContent() {
     return `${diffInHours} ${t.coinDetails.lastUpdatedText.hoursAgo}`;
   };
 
-  if (loading && !coinData) {
+  if (loading && !coinData?.price) {
     return (
       <View style={[styles.container, { backgroundColor }, styles.center]}>
         <ActivityIndicator size="large" color={textColor} />
@@ -181,18 +198,6 @@ function CoinDetailsContent() {
       </View>
     );
   }
-
-  if (!coinData) {
-    return (
-      <View style={[styles.container, { backgroundColor }, styles.center]}>
-        <Text style={{ color: textColor }}>{t.error}</Text>
-        <TouchableOpacity onPress={onRefresh} style={styles.retryButton}>
-          <Text style={{ color: textColor }}>{t.retry}</Text>
-        </TouchableOpacity>
-      </View>
-    );
-  }
-
   const changeColor = coinData.change24h >= 0 ? "#1db954" : "#e53935";
   const changeBackgroundColor =
     coinData.change24h >= 0
@@ -263,17 +268,9 @@ function CoinDetailsContent() {
           <Text style={[styles.chartTitle, { color: textColor }]}>
             {t.coinDetails.liveChart}
           </Text>
-
-          {chartImage ? (
-            <Image
-              source={{ uri: chartImage }}
-              style={styles.chartImage}
-              resizeMode="contain"
-            />
-          ) : (
-            <TradingViewChart symbol={String(coinId)} height={450} />
-          )}
-
+            <TradingViewChart symbol={String(coinId)} height={450} 
+            language={isPersian ? 'fa' : 'en'} />
+            
           <TouchableOpacity style={styles.fullChartBtn} onPress={openFullChart}>
             <Text style={{ color: "#2196F3", fontWeight: "bold" }}>
               {t.viewFullChart}
@@ -390,11 +387,11 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     marginBottom: 12,
   },
-  chartImage: {
-    width: '100%',
-    height: 450,
-    borderRadius: 8,
-  },
+  //chartImage: {
+    //width: '100%',
+    //height: 450,
+    //borderRadius: 8,
+  //},
   statsCard: {
     padding: 16,
     borderRadius: 12,

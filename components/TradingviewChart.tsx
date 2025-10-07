@@ -18,7 +18,33 @@ export default function TradingViewChart({
 }: TradingViewChartProps) {
     // گرفتن سیمبل درست از مپ binanceSymbols
     const binanceSymbols = translations[language].binanceSymbols;
-    const tradingViewSymbol = 'BINANCE:' + (binanceSymbols[symbol] || 'BTCUSDT');
+    // تبدیل نام کوین به نماد
+    const getSymbolFromName = (coinName: string) => {
+        const symbolMap: { [key: string]: string } = {
+            'bitcoin': 'BTC',
+            'ethereum': 'ETH',
+            'binancecoin': 'BNB',
+            'ripple': 'XRP',
+            'dogecoin': 'DOGE',
+            'solana': 'SOL',
+            'cardano': 'ADA',
+            'tron': 'TRX',
+            'polkadot': 'DOT',
+            'matic-network': 'MATIC',
+            'stellar': 'XLM',
+            'litecoin': 'LTC',
+            'uniswap': 'UNI',
+            'monero': 'XMR',
+            'aave': 'AAVE',
+            'pepe': 'PEPE',
+            'usdt': 'USDT'
+        };
+        return symbolMap[coinName.toLowerCase()] || 'BTC'; // fallback به بیت‌کوین
+    };
+
+    const coinSymbol = getSymbolFromName(symbol);
+    const tradingViewSymbol = 'BINANCE:' + coinSymbol + 'USDT';
+    console.log('Final TradingView Symbol:', tradingViewSymbol);
 
     // زبان چارت
     const locale = language === 'fa' ? 'fa' : 'en';
@@ -69,12 +95,12 @@ export default function TradingViewChart({
         <View style={[styles.container, { height }]}>
             <WebView
                 source={{ html: htmlContent }}
-                style={styles.webview}
+                style={[styles.webview, {height}]}
                 javaScriptEnabled={true}
                 domStorageEnabled={true}
                 startInLoadingState={true}
                 userAgent={
-                    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36'
+                    ' Chrome/126.0.0.0'
                 }
             />
         </View>
@@ -83,11 +109,12 @@ export default function TradingViewChart({
 
 const styles = StyleSheet.create({
     container: {
-        width: width - 32,
+        width: '100%',
         marginHorizontal: 16,
         borderRadius: 12,
         overflow: 'hidden',
         marginVertical: 10,
+        backgroundColor: '#000'
     },
     webview: {
         flex: 1,
