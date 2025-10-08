@@ -31,7 +31,7 @@ export default function UpdateChecker() {
     if (isUpdating) {
         return (
             <View style={styles.container}>
-                <ActivityIndicator size="large" color="#007AFF" />
+                <ActivityIndicator size="small" color="#007AFF" />
                 <Text style={styles.text}>در حال بروزرسانی نسخه جدید، لطفاً اپ را نبندید...</Text>
             </View>
         );
@@ -45,7 +45,7 @@ const styles = StyleSheet.create({
         flex: 1,
         justifyContent: "center",
         alignItems: "center",
-        padding: 20,
+        padding: 10,
     },
     text: {
         marginTop: 12,
