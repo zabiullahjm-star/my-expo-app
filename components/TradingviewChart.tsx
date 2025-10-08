@@ -31,7 +31,7 @@ export default function TradingViewChart({
             'tron': 'TRX',
             'polkadot': 'DOT',
             'matic-network': 'MATIC',
-            'Hyperliquid': 'HYPWE',
+            'hyperliquid': 'HYPE',
             'Sui': 'Sui',
             'stellar': 'XLM',
             'cosmos': 'ATOM',
@@ -40,7 +40,7 @@ export default function TradingViewChart({
             'monero': 'XMR',
             'aave': 'AAVE',
             'pepe': 'PEPE',
-            'usdt': ' .d',
+            'usdt': ' ',
             'fartcoin': 'FARTCOIN',
         };
         return symbolMap[coinName.toLowerCase()] || 'BTC'; // fallback به بیت‌کوین
