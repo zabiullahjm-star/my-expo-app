@@ -102,7 +102,7 @@ function CoinDetailsContent() {
       // همیشه ۱ ثانیه بعد از لود کامل صفحه
       setTimeout(() => {
         fetchCoinDetails(false);
-      }, 1500);
+      }, 5000);
     }
   };
 
@@ -117,12 +117,28 @@ function CoinDetailsContent() {
       if (!res.ok) throw new Error("API response not ok");
 
       const data = await res.json();
+      // اول از index قیمت رو بگیر
+      const indexPrices = await AsyncStorage.getItem("CACHED_PRICES");
+      let currentPrice = data.market_data.current_price.usd;
+      let currentChange = data.market_data.price_change_percentage_24h;
 
+      if (indexPrices) {
+        try {
+          const pricesData = JSON.parse(indexPrices);
+          const coinKey = Object.keys(pricesData).find(key => key === String(coinId));
+          if (coinKey && pricesData[coinKey]) {
+            currentPrice = pricesData[coinKey].usd || currentPrice;
+            currentChange = pricesData[coinKey].usd_24h_change || currentChange;
+          }
+        } catch (error) {
+          // ignore error
+        }
+      }
       const coin: CoinDetails = {
         name: data.name,
         symbol: data.symbol.toUpperCase(),
-        price: data.market_data.current_price.usd,
-        change24h: data.market_data.price_change_percentage_24h,
+        price:currentPrice,
+        change24h:currentChange,
         high24h: data.market_data.high_24h.usd,
         low24h: data.market_data.low_24h.usd,
         volume: data.market_data.total_volume.usd,
@@ -294,7 +310,7 @@ function CoinDetailsContent() {
           <View style={styles.chartWrapper}>
             <TradingViewChart
               symbol={String(coinId)}
-              height={isChartFullScreen ? 600 : 350}
+              height={isChartFullScreen ? 750 : 480}
               language={isPersian ? 'fa' : 'en'}
             />
             <TouchableOpacity style={styles.floatingButton} onPress={toggleChartSize}>

@@ -31,13 +31,17 @@ export default function TradingViewChart({
             'tron': 'TRX',
             'polkadot': 'DOT',
             'matic-network': 'MATIC',
+            'Hyperliquid': 'HYPWE',
+            'Sui': 'Sui',
             'stellar': 'XLM',
+            'cosmos': 'ATOM',
             'litecoin': 'LTC',
             'uniswap': 'UNI',
             'monero': 'XMR',
             'aave': 'AAVE',
             'pepe': 'PEPE',
-            'usdt': 'USDT'
+            'usdt': ' .d',
+            'fartcoin': 'FARTCOIN',
         };
         return symbolMap[coinName.toLowerCase()] || 'BTC'; // fallback به بیت‌کوین
     };
@@ -99,9 +103,7 @@ export default function TradingViewChart({
                 javaScriptEnabled={true}
                 domStorageEnabled={true}
                 startInLoadingState={true}
-                userAgent={
-                    ' Chrome/126.0.0.0'
-                }
+                userAgent={"Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.6478.122 Mobile Safari/537.36"}
             />
         </View>
     );
@@ -110,10 +112,10 @@ export default function TradingViewChart({
 const styles = StyleSheet.create({
     container: {
         width: '100%',
-        marginHorizontal:5,
+        marginHorizontal: 5,
         borderRadius: 12,
         overflow: 'hidden',
-      
+
         backgroundColor: '#000'
     },
     webview: {

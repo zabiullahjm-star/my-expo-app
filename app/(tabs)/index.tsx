@@ -28,7 +28,7 @@ type PriceRecord = {
 
 const COINS: string[] = [
   "usdt", "bitcoin", "ethereum", "binancecoin", "ripple", "dogecoin", "solana",
-  "cardano", "tron", "polkadot", "matic-network", "hyperliquid", "sui",
+  "cardano", "tron", "shiba", "the-open-network", "polkadot", "matic-network", "hyperliquid", "sui",
   "stellar", "litecoin", "whitebit", "uniswap", "mantle", "monero",
   "ethena", "pepe", "aave", "okb", "memecoin", "near", "bittensor",
   "aptos", "arbitrum", "kaspa", "cosmos", "algorand", "vechain",
@@ -197,7 +197,7 @@ const App: React.FC = () => {
   // آپدیت دیتا هر ۳۰ ثانیه
   useEffect(() => {
     loadData();
-    const interval = setInterval(loadData, 30000);
+    const interval = setInterval(loadData, 20000);
     return () => clearInterval(interval);
   }, [loadData]);
 
