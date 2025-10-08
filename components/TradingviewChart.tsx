@@ -95,7 +95,7 @@ export default function TradingViewChart({
         <View style={[styles.container, { height }]}>
             <WebView
                 source={{ html: htmlContent }}
-                style={[styles.webview, {height}]}
+                style={[styles.webview, { height }]}
                 javaScriptEnabled={true}
                 domStorageEnabled={true}
                 startInLoadingState={true}
@@ -110,10 +110,10 @@ export default function TradingViewChart({
 const styles = StyleSheet.create({
     container: {
         width: '100%',
-        marginHorizontal: 16,
+        marginHorizontal:5,
         borderRadius: 12,
         overflow: 'hidden',
-        marginVertical: 10,
+      
         backgroundColor: '#000'
     },
     webview: {

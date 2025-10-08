@@ -18,6 +18,7 @@ import { LanguageProvider, useLanguage } from "./languageContext";
 import translations from "./translations";
 import TradingViewChart from "../components/TradingviewChart";
 import { WebView } from "react-native-webview";
+import { Dimensions } from 'react-native';
 
 type CoinDetails = {
   name: string;
@@ -63,6 +64,7 @@ function CoinDetailsContent() {
   const [refreshing, setRefreshing] = useState(false);
   const [offline, setOffline] = useState(false);
   const [showWebView, setShowWebView] = useState(false);
+  const [isChartFullScreen, setIsChartFullScreen] = useState(false);
 
   const backgroundColor = isDark ? "#121212" : "#F9FAFB";
   const textColor = isDark ? "#FFFFFF" : "#000000";
@@ -175,7 +177,9 @@ function CoinDetailsContent() {
   const openFullChart = () => {
     setShowWebView(true);
   };
-
+  const toggleChartSize = () => {
+    setIsChartFullScreen(!isChartFullScreen);
+  };
   // تابع برای نمایش زمان آخرین بروزرسانی
   const getLastUpdatedText = () => {
     if (!coinData?.lastUpdated) return "";
@@ -220,14 +224,33 @@ function CoinDetailsContent() {
           <View style={{ padding: 12, backgroundColor: "#2196F3" }}>
             <TouchableOpacity onPress={() => setShowWebView(false)}>
               <Text style={{ color: "#fff", fontWeight: "bold", fontSize: 16 }}>
-                {isPersian ? "بستن" : "Close"}
+                {t.expandChart}
               </Text>
             </TouchableOpacity>
           </View>
           <WebView source={{ uri: chartUrl }} style={{ flex: 1 }} />
         </View>
       </Modal>
-
+      {/* Modal برای چارت تمام‌صفحه */}
+      <Modal
+        visible={isChartFullScreen}
+        animationType="fade"
+        presentationStyle="fullScreen"
+        statusBarTranslucent={true}
+      >
+        <View style={styles.fullScreenChart}>
+          <TradingViewChart
+            symbol={String(coinId)}
+            height={Dimensions.get('window').height}
+            language={isPersian ? 'fa' : 'en'}
+          />
+          <TouchableOpacity style={styles.floatingButton} onPress={() => setIsChartFullScreen(false)}>
+            <Text style={{ color: "#2196F3", fontWeight: "bold", fontSize: 12 }}>
+              {t.shrinkChart}
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </Modal>
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         refreshControl={
@@ -263,19 +286,23 @@ function CoinDetailsContent() {
           </Text>
         </View>
 
-        {/* چارت */}
         <View style={[styles.chartContainer, { backgroundColor: cardColor }]}>
           <Text style={[styles.chartTitle, { color: textColor }]}>
             {t.coinDetails.liveChart}
           </Text>
-            <TradingViewChart symbol={String(coinId)} height={450} 
-            language={isPersian ? 'fa' : 'en'} />
-            
-          <TouchableOpacity style={styles.fullChartBtn} onPress={openFullChart}>
-            <Text style={{ color: "#2196F3", fontWeight: "bold" }}>
-              {t.viewFullChart}
-            </Text>
-          </TouchableOpacity>
+
+          <View style={styles.chartWrapper}>
+            <TradingViewChart
+              symbol={String(coinId)}
+              height={isChartFullScreen ? 600 : 350}
+              language={isPersian ? 'fa' : 'en'}
+            />
+            <TouchableOpacity style={styles.floatingButton} onPress={toggleChartSize}>
+              <Text style={{ color: "#2196F3", fontWeight: "bold", fontSize: 12 }}>
+                {isChartFullScreen ? t.shrinkChart : t.expandChart}
+              </Text>
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* آمارهای بازار */}
@@ -377,7 +404,7 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
   },
   chartContainer: {
-    padding: 16,
+    padding: 2,
     borderRadius: 12,
     marginBottom: 16,
     alignItems: "center",
@@ -386,12 +413,21 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "bold",
     marginBottom: 12,
+  }, chartWrapper: {
+    position: 'relative',
+    width: '100%',
   },
-  //chartImage: {
-    //width: '100%',
-    //height: 450,
-    //borderRadius: 8,
-  //},
+  floatingButton: {
+    position: 'absolute',
+    bottom: 10,
+    right: 10,
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#2196F3',
+  },
   statsCard: {
     padding: 16,
     borderRadius: 12,
@@ -411,6 +447,19 @@ const styles = StyleSheet.create({
   statLabel: {
     fontSize: 14,
     opacity: 0.8,
+  }, fullScreenChart: {
+    flex: 1,
+    backgroundColor: '#000',
+  },
+  closeFullScreenButton: {
+    position: 'absolute',
+    top: 50,
+    right: 20,
+    backgroundColor: 'rgba(33, 150, 243, 0.8)',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    zIndex: 999,
   },
   statValue: {
     fontSize: 14,
