@@ -46,7 +46,6 @@ const App: React.FC = () => {
   const { isDark, toggleTheme } = useTheme();
   const { isPersian } = useLanguage();
   const router = useRouter();
-
   // تعریف متغیرهای رنگی بر اساس تم
   const backgroundColor = isDark ? "#0f172a" : "#f8fafc";
   const textColor = isDark ? "#f1f5f9" : "#1e293b";
@@ -56,10 +55,9 @@ const App: React.FC = () => {
   const placeholderColor = isDark ? "#94a3b8" : "#64748b";
   const placeholderLogoBg = isDark ? "#475569" : "#cbd5e1";
   const placeholderLogoText = isDark ? "#94a3b8" : "#475569";
-
   // تعریف t از translations
   const t = isPersian ? translations.fa : translations.en;
-
+  const [lastUpdateTime, setLastUpdateTime] = useState<number>(Date.now());
   const [prices, setPrices] = useState<Record<string, PriceRecord>>({});
   const [coinImages, setCoinImages] = useState<Record<string, string>>({});
   const [usdtToToman, setUsdtToToman] = useState<number | null>(null);
@@ -83,7 +81,6 @@ const App: React.FC = () => {
     return coinId.includes(query) || (coinName && coinName.includes(query));
     return false
   });
-
   // بارگذاری کش اولیه - بهبود یافته برای جلوگیری از صفر شدن
   useEffect(() => {
     (async () => {
@@ -93,7 +90,6 @@ const App: React.FC = () => {
           AsyncStorage.getItem(STORAGE_KEYS.IMAGES),
           AsyncStorage.getItem(STORAGE_KEYS.USDT),
         ]);
-
         // فقط اگر داده معتبر داریم، ست می‌کنیم
         if (cachedPrices) {
           const parsedPrices = JSON.parse(cachedPrices);
@@ -101,7 +97,6 @@ const App: React.FC = () => {
             setPrices(parsedPrices);
           }
         }
-
         if (cachedImages) {
           const parsedImages = JSON.parse(cachedImages);
           if (Object.keys(parsedImages).length > 0) {
@@ -122,7 +117,6 @@ const App: React.FC = () => {
       }
     })();
   }, []);
-
   // دریافت دیتا جدید و آپدیت کش فقط در صورت موفقیت - بهبود یافته
   const fetchCryptoPrices = useCallback(async () => {
     try {
@@ -137,6 +131,8 @@ const App: React.FC = () => {
       // فقط اگر داده معتبر گرفتیم، آپدیت می‌کنیم
       if (data && Object.keys(data).length > 0) {
         setPrices(data);
+        // در تابع fetchCryptoPrices، بعد از خط setPrices(data); این رو اضافه کن:
+        console.log('💰 قیمت جدید:', data?.bitcoin?.usd, 'BTC - زمان:', new Date().toLocaleTimeString());
         await AsyncStorage.setItem(STORAGE_KEYS.PRICES, JSON.stringify(data));
       }
     } catch (err) {
@@ -166,7 +162,6 @@ const App: React.FC = () => {
       setOffline(true);
     }
   }, []);
-
   const fetchUSDTtoToman = useCallback(async () => {
     try {
       setOffline(false);
@@ -181,10 +176,11 @@ const App: React.FC = () => {
         }
       }
     } catch (err) {
+      // خط اول: در ابتدای تابع loadData (خط ~150)
+      console.log('🔄 START loadData - زمان:', new Date().toLocaleTimeString());
       setOffline(true);
     }
   }, []);
-
   const loadData = useCallback(async () => {
     setError(null);
     await Promise.allSettled([
@@ -192,21 +188,29 @@ const App: React.FC = () => {
       fetchCoinImages(),
       fetchUSDTtoToman()
     ]);
+    // خط دوم: در انتهای تابع loadData (بعد از Promise.allSettled)
+    console.log('✅ END loadData - زمان:', new Date().toLocaleTimeString());
+    setLastUpdateTime(Date.now());
   }, [fetchCryptoPrices, fetchCoinImages, fetchUSDTtoToman]);
 
   // آپدیت دیتا هر ۳۰ ثانیه
   useEffect(() => {
-    loadData();
-    const interval = setInterval(loadData, 20000);
-    return () => clearInterval(interval);
-  }, [loadData]);
+    const checkForUpdate = () => {
+      const timeSinceLastUpdate = Date.now() - lastUpdateTime;
+      if (timeSinceLastUpdate >= 20000) {
+        console.log('⏰ زمان آپدیت فرا رسیده - زمان:', new Date().toLocaleTimeString());
+        loadData();
+      }
+    };
 
+    const interval = setInterval(checkForUpdate, 1000);
+    return () => clearInterval(interval);
+  }, [lastUpdateTime, loadData]);
   const onRefresh = async () => {
     setRefreshing(true);
     await loadData();
     setRefreshing(false);
   };
-
   const renderCoinLogo = (coinId: string) => {
     const logoUrl = coinImages[coinId];
 
@@ -302,7 +306,7 @@ const App: React.FC = () => {
                   </View>
                   <View style={styles.centerCol}>
                     <Text style={[styles.price, { color: textColor }]}>
-                      {usdtPrice ? (usdtPrice < 0.001 ? usdtPrice.toFixed(8) : Number(usdtPrice).toLocaleString(isPersian ? 'fa-IR' : 'en-US')) : "۰"}
+                      {usdtPrice ? (usdtPrice < 0.001 ? usdtPrice.toFixed(12) : Number(usdtPrice).toLocaleString(isPersian ? 'fa-IR' : 'en-US')) : "۰"}
                     </Text>
                     <Text style={[styles.change, { color: changeColor }]}>
                       {change !== undefined && change !== null ? change.toFixed(2) + "%" : "۰%"}
@@ -318,9 +322,6 @@ const App: React.FC = () => {
             );
           })}
         </ScrollView>
-
-
-
         <TouchableOpacity
           onPress={toggleTheme}
           style={[
@@ -337,7 +338,6 @@ const App: React.FC = () => {
       </SafeAreaView>
     );
   }
-
   return (
     <SafeAreaView style={[styles.container, { backgroundColor }]}>
       <View style={[styles.searchContainer, { backgroundColor: searchBackgroundColor }]}>
@@ -368,7 +368,6 @@ const App: React.FC = () => {
           <Text style={[styles.headerText, { color: textColor }]}>{t.tomanPrice}</Text>
         </View>
       </View>
-
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         refreshControl={
@@ -416,7 +415,7 @@ const App: React.FC = () => {
 
                 <View style={styles.centerCol}>
                   <Text style={[styles.price, { color: textColor }]}>
-                    {usdtPrice ? (usdtPrice < 0.001 ? usdtPrice.toFixed(8) : Number(usdtPrice).toLocaleString(isPersian ? 'fa-IR' : 'en-US')) : "—"}
+                    {usdtPrice ? (usdtPrice < 0.001 ? usdtPrice.toFixed(10) : Number(usdtPrice).toLocaleString(isPersian ? 'fa-IR' : 'en-US')) : "—"}
                   </Text>
                   <Text style={[styles.change, { color: changeColor }]}>
                     {change !== undefined && change !== null ? change.toFixed(2) + "%" : "—"}
@@ -603,5 +602,4 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
 });
-
 export default App;
