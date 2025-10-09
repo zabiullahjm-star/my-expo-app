@@ -35,7 +35,7 @@ export default function TradingViewChart(props: TradingViewChartProps) {
     };
 
     // کوین‌هایی که نیاز به .P دارند (هر وقت خواستی اضافه کن)
-    var pointPSymbols = ['BTC', 'ETH', 'SOL', 'PEPE'];
+    var pointPSymbols = ['HYPE', 'FARTCOIN', 'SOL', 'PEPE'];
 
     // ------ prepare coin symbol ------
     var coinSymbol = (symbolMap[symbolParam.toLowerCase()] ||
