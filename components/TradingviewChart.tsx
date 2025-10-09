@@ -28,14 +28,14 @@ export default function TradingViewChart(props: TradingViewChartProps) {
     // مپ نام کوین‌ها به سیمبل (کلیدها lowercase)
     var symbolMap: { [key: string]: string } = {
         'bitcoin': 'BTC', 'ethereum': 'ETH', 'binancecoin': 'BNB', 'ripple': 'XRP',
-        'dogecoin': 'DOGE', 'solana': 'SOL', 'cardano': 'ADA', 'tron': 'TRX',
+        'dogecoin': 'DOGE', 'solana': 'SOL', 'shiba': 'SHIB', 'cardano': 'ADA', 'the-open-network': 'TON', 'tron': 'TRX',
         'polkadot': 'DOT', 'matic-network': 'MATIC', 'hyperliquid': 'HYPE',
         'sui': 'SUI', 'stellar': 'XLM', 'cosmos': 'ATOM', 'litecoin': 'LTC',
         'uniswap': 'UNI', 'monero': 'XMR', 'aave': 'AAVE', 'pepe': 'PEPE', 'fartcoin': 'FARTCOIN'
     };
 
     // کوین‌هایی که نیاز به .P دارند (هر وقت خواستی اضافه کن)
-    var pointPSymbols = ['HYPE', 'FARTCOIN', 'SOL', 'PEPE'];
+    var pointPSymbols = ['HYPE', 'FARTCOIN','XMR'];
 
     // ------ prepare coin symbol ------
     var coinSymbol = (symbolMap[symbolParam.toLowerCase()] ||
@@ -58,7 +58,7 @@ export default function TradingViewChart(props: TradingViewChartProps) {
         "  function checkNoData() {" +
         "    var bodyText = (document.body && document.body.innerText) || '';" +
         // عبارت‌های محتمل خطا/بدون داده را اینجا چک می‌کنیم (می‌توان افزدونش کرد)
-        "    if (/no data|no chart data|no prices to display|no prices|No data|No chart data|بدون داده/i.test(bodyText)) {" +
+        "    if (/no data|no chart data|no prices to display|no prices|Invalid symbol|No chart data|بدون داده/i.test(bodyText)) {" +
         "      window.ReactNativeWebView.postMessage('Invalid symbol');" +
         "    } else {" +
         "      window.ReactNativeWebView.postMessage('OK');" +
