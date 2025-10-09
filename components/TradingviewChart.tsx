@@ -59,7 +59,7 @@ export default function TradingViewChart(props: TradingViewChartProps) {
         "    var bodyText = (document.body && document.body.innerText) || '';" +
         // عبارت‌های محتمل خطا/بدون داده را اینجا چک می‌کنیم (می‌توان افزدونش کرد)
         "    if (/no data|no chart data|no prices to display|no prices|No data|No chart data|بدون داده/i.test(bodyText)) {" +
-        "      window.ReactNativeWebView.postMessage('NO_DATA');" +
+        "      window.ReactNativeWebView.postMessage('Invalid symbol');" +
         "    } else {" +
         "      window.ReactNativeWebView.postMessage('OK');" +
         "    }" +
