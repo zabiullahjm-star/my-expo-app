@@ -1,10 +1,14 @@
 import { useEffect, useState } from "react";
 import * as Updates from "expo-updates";
 import { View, Text, ActivityIndicator, StyleSheet } from "react-native";
+import { useLanguage } from './languageContext';
+import translations from './translations';
 
 export default function UpdateChecker() {
     const [isChecking, setIsChecking] = useState(true);
     const [isUpdating, setIsUpdating] = useState(false);
+    const { isPersian } = useLanguage();
+    const t = isPersian ? translations.fa : translations.en;
 
     useEffect(() => {
         async function checkForUpdates() {
@@ -32,7 +36,7 @@ export default function UpdateChecker() {
         return (
             <View style={styles.container}>
                 <ActivityIndicator size="small" color="#007AFF" />
-                <Text style={styles.text}>در حال بروزرسانی نسخه جدید، لطفاً اپ را نبندید...</Text>
+                <Text style={styles.text}>{t.updatingMessage}</Text>
             </View>
         );
     }
@@ -42,15 +46,24 @@ export default function UpdateChecker() {
 
 const styles = StyleSheet.create({
     container: {
-        flex: 1,
-        justifyContent: "center",
-        alignItems: "center",
-        padding: 10,
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        height: '8%',            // یا هر ارتفاعی که خواستی، مثلاً 5–10%
+        backgroundColor: '#fff', // یا هر رنگ دلخواه (مثلاً '#121212' برای تیره)
+        flexDirection: 'row',
+        justifyContent: 'center',
+        alignItems: 'center',
+        paddingHorizontal: 10,
+        borderBottomWidth: 1,
+        borderBottomColor: '#c41919ff',
+        zIndex: 9999,            // تا روی بقیه عناصر باشه
     },
     text: {
         marginTop: 12,
         fontSize: 16,
         textAlign: "center",
-        color: "#333",
+        color: "#14830aff",
     },
 });

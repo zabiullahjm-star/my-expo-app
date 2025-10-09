@@ -197,7 +197,7 @@ const App: React.FC = () => {
   useEffect(() => {
     const checkForUpdate = () => {
       const timeSinceLastUpdate = Date.now() - lastUpdateTime;
-      if (timeSinceLastUpdate >= 20000) {
+      if (timeSinceLastUpdate >= 50000) {
         console.log('⏰ زمان آپدیت فرا رسیده - زمان:', new Date().toLocaleTimeString());
         loadData();
       }
@@ -306,7 +306,7 @@ const App: React.FC = () => {
                   </View>
                   <View style={styles.centerCol}>
                     <Text style={[styles.price, { color: textColor }]}>
-                      {usdtPrice ? (usdtPrice < 0.001 ? usdtPrice.toFixed(12) : Number(usdtPrice).toLocaleString(isPersian ? 'fa-IR' : 'en-US')) : "۰"}
+                      {usdtPrice ? (usdtPrice < 0.001 ? usdtPrice.toFixed(11) : Number(usdtPrice).toLocaleString(isPersian ? 'fa-IR' : 'en-US')) : "۰"}
                     </Text>
                     <Text style={[styles.change, { color: changeColor }]}>
                       {change !== undefined && change !== null ? change.toFixed(2) + "%" : "۰%"}
@@ -415,7 +415,7 @@ const App: React.FC = () => {
 
                 <View style={styles.centerCol}>
                   <Text style={[styles.price, { color: textColor }]}>
-                    {usdtPrice ? (usdtPrice < 0.001 ? usdtPrice.toFixed(10) : Number(usdtPrice).toLocaleString(isPersian ? 'fa-IR' : 'en-US')) : "—"}
+                    {usdtPrice ? (usdtPrice < 0.001 ? usdtPrice.toFixed(11) : Number(usdtPrice).toLocaleString(isPersian ? 'fa-IR' : 'en-US')) : "—"}
                   </Text>
                   <Text style={[styles.change, { color: changeColor }]}>
                     {change !== undefined && change !== null ? change.toFixed(2) + "%" : "—"}
