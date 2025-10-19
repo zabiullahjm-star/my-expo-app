@@ -29,13 +29,13 @@ export default function TradingViewChart(props: TradingViewChartProps) {
     var symbolMap: { [key: string]: string } = {
         'bitcoin': 'BTC', 'ethereum': 'ETH', 'binancecoin': 'BNB', 'ripple': 'XRP',
         'dogecoin': 'DOGE', 'solana': 'SOL', 'shiba': 'SHIB', 'cardano': 'ADA', 'the-open-network': 'TON', 'tron': 'TRX',
-        'polkadot': 'DOT', 'matic-network': 'MATIC', 'hyperliquid': 'HYPE',
+        'polkadot': 'DOT', 'matic-network': 'MATIC', 'filcoin': 'FIL', 'hyperliquid': 'HYPE',
         'sui': 'SUI', 'stellar': 'XLM', 'cosmos': 'ATOM', 'litecoin': 'LTC',
         'uniswap': 'UNI', 'monero': 'XMR', 'aave': 'AAVE', 'pepe': 'PEPE', 'fartcoin': 'FARTCOIN'
     };
 
     // کوین‌هایی که نیاز به .P دارند (هر وقت خواستی اضافه کن)
-    var pointPSymbols = ['HYPE', 'FARTCOIN','XMR'];
+    var pointPSymbols = ['HYPE', 'FARTCOIN', 'XMR'];
 
     // ------ prepare coin symbol ------
     var coinSymbol = (symbolMap[symbolParam.toLowerCase()] ||

@@ -1,4 +1,6 @@
 import { DarkTheme, DefaultTheme, ThemeProvider as NavigationThemeProvider } from '@react-navigation/native';
+import { AuthProvider } from './auth-context';
+import { UserProvider } from './UserContext';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import 'react-native-reanimated';
@@ -14,15 +16,20 @@ export default function RootLayout() {
   const colorScheme = useColorScheme();
 
   return (
-    <ThemeProvider>
-      <NavigationThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-        <Stack>
-          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-          <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
-        </Stack>
-        <StatusBar style="auto" />
-        <UpdateChecker /> {/* 👈 اینطوری همیشه فعال می‌مونه */}
-      </NavigationThemeProvider>
-    </ThemeProvider>
+    // در رندر:
+    <AuthProvider>
+      <ThemeProvider>
+        <NavigationThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+          <Stack>
+            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+            <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
+            <Stack.Screen name="login" options={{ headerShown: false }} />
+            <Stack.Screen name="profile" options={{ headerShown: false }} />
+          </Stack>
+          <StatusBar style="auto" />
+          <UpdateChecker />
+        </NavigationThemeProvider>
+      </ThemeProvider>
+    </AuthProvider>
   );
 }

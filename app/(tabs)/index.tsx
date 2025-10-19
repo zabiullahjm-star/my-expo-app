@@ -193,19 +193,23 @@ const App: React.FC = () => {
     setLastUpdateTime(Date.now());
   }, [fetchCryptoPrices, fetchCoinImages, fetchUSDTtoToman]);
 
-  // آپدیت دیتا هر ۳۰ ثانیه
+  // آپدیت دیتا هر ۳۰ ثانیه 
   useEffect(() => {
-    const checkForUpdate = () => {
-      const timeSinceLastUpdate = Date.now() - lastUpdateTime;
-      if (timeSinceLastUpdate >= 50000) {
-        console.log('⏰ زمان آپدیت فرا رسیده - زمان:', new Date().toLocaleTimeString());
-        loadData();
-      }
+    // 👇 نسخه جدید
+    const initLoad = async () => {
+      console.log('🚀 بار اول لود دیتا در شروع برنامه');
+      await loadData();
     };
+    initLoad();
 
-    const interval = setInterval(checkForUpdate, 1000);
+    const interval = setInterval(() => {
+      console.log('⏰ تایمر فعال شد - در حال آپدیت داده‌ها');
+      loadData();
+    }, 50000);
+
     return () => clearInterval(interval);
-  }, [lastUpdateTime, loadData]);
+  }, [loadData]);
+
   const onRefresh = async () => {
     setRefreshing(true);
     await loadData();
@@ -440,6 +444,22 @@ const App: React.FC = () => {
           </View>
         )}
       </ScrollView>
+
+      {/* دکمه پروفایل */}
+      <TouchableOpacity
+        onPress={() => router.push('../profile')}
+        style={[
+          styles.fab,
+          {
+            backgroundColor: isDark ? "#1f2937" : "#fff",
+            borderColor: isDark ? "#334155" : "#e5e7eb",
+            bottom: 80, // بالاتر از دکمه تغییر تم
+            right: 20,
+          },
+        ]}
+      >
+        <Text style={{ fontSize: 18 }}>👤</Text>
+      </TouchableOpacity>
 
       <TouchableOpacity
         onPress={toggleTheme}
