@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { Session, User } from '@supabase/supabase-js';
+import { useRef } from 'react'
 
 type AuthContextType = {
     session: Session | null;
@@ -14,11 +15,13 @@ type AuthContextType = {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export function AuthProvider({ children }: { children: React.ReactNode }) {
+export default function AuthProvider({ children }: { children: React.ReactNode }) {
     const [session, setSession] = useState<Session | null>(null);
     const [user, setUser] = useState<User | null>(null);
     const [profile, setProfile] = useState<any>(null);
     const [loading, setLoading] = useState(true);
+    const intervalRef = useRef<NodeJS.Timeout | null>(null);
+    const [startTime, setStartTime] = useState<number | null>(null);
 
     useEffect(() => {
         // دریافت session فعلی
@@ -49,6 +52,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return () => subscription.unsubscribe();
     }, []);
 
+    // تایمر برای ذخیره زمان استفاده - جداگانه
+    useEffect(() => {
+        if (user) {
+            // کاربر لاگین کرده - تایمر رو شروع کن
+            setStartTime(Date.now());
+            startTimeTracker();
+        } else {
+            // کاربر خارج شده - تایمر رو متوقف کن
+            if (intervalRef.current) {
+                clearInterval(intervalRef.current);
+            }
+        }
+
+        return () => {
+            // وقتی کامپوننت unmount میشه، تایمر رو پاک کن
+            if (intervalRef.current) {
+                clearInterval(intervalRef.current);
+            }
+        };
+    }, [user]);
+
     const fetchProfile = async (userId: string) => {
         try {
             const { data, error } = await supabase
@@ -62,6 +86,47 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             }
         } catch (error) {
             console.log('Error fetching profile:', error);
+        }
+    };
+
+    const startTimeTracker = () => {
+        // هر 30 ثانیه این کار رو انجام بده:
+        intervalRef.current = setInterval(async () => {
+            if (user && startTime) {
+                const currentTime = Date.now();
+                const sessionTime = currentTime - startTime; // محاسبه زمان گذشته
+                await saveUserTime(user.id, sessionTime); // ذخیره زمان
+                setStartTime(currentTime); // ریستارت تایمر
+            }
+        }, 10000) as unknown as NodeJS.Timeout;
+    };
+
+    const saveUserTime = async (userId: string, sessionTime: number) => {
+        try {
+            // زمان کل کاربر رو از دیتابیس بگیر
+            const { data, error } = await supabase
+                .from('profiles')
+                .select('total_time')
+                .eq('id', userId)
+                .single();
+
+            if (data && !error) {
+                // زمان جدید = زمان قدیمی + زمان فعلی
+                const newTotalTime = (data.total_time || 0) + sessionTime;// در دیتابیس آپدیت کن
+                const { error: updateError } = await supabase
+                    .from('profiles')
+                    .update({
+                        total_time: newTotalTime,
+                        last_seen: new Date().toISOString()
+                    })
+                    .eq('id', userId);
+
+                if (!updateError) {
+                    console.log('✅ زمان ذخیره شد:', newTotalTime);
+                }
+            }
+        } catch (error) {
+            console.log('خطا در ذخیره زمان:', error);
         }
     };
 
