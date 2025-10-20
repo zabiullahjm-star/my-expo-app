@@ -29,6 +29,12 @@
     "plugins": [
       "expo-router",
       [
+        "expo-auth-session",
+        {
+          "redirectUri": "price://auth/callback"
+        }
+      ],
+      [
         "expo-splash-screen",
         {
           "image": "./assets/images/icon.png",
