@@ -1,11 +1,11 @@
 import { useEffect } from 'react';
-import { useRouter, useSearchParams } from 'expo-router';
+import { useRouter, useGlobalSearchParams } from 'expo-router';
 import { View, Text, ActivityIndicator } from 'react-native';
 import { supabase } from '../lib/supabase';
 
 export default function AuthCallback() {
     const router = useRouter();
-    const searchParams = useSearchParams();
+    const searchParams = useGlobalSearchParams();
 
     useEffect(() => {
         const handleAuthCallback = async () => {

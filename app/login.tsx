@@ -33,18 +33,7 @@ export default function LoginScreen() {
 
     const handleAuth = async () => {
         if (!email || !password) {
-            Alert.alert(
-                isPersian ? 'خطا' : 'Error',
-                isPersian ? 'ایمیل و رمز عبور الزامی است' : 'Email and password are required'
-            );
-            return;
-        }
-
-        if (isSignUp && !name) {
-            Alert.alert(
-                isPersian ? 'خطا' : 'Error',
-                isPersian ? 'نام الزامی است' : 'Name is required'
-            );
+            Alert.alert('خطا', 'ایمیل و رمز عبور الزامی است');
             return;
         }
 
@@ -59,24 +48,14 @@ export default function LoginScreen() {
             }
 
             if (result.error) {
-                Alert.alert(
-                    isPersian ? 'خطا' : 'Error',
-                    result.error.message
-                );
+                Alert.alert('خطا', result.error.message);
             } else {
-                Alert.alert(
-                    isPersian ? 'موفق' : 'Success',
-                    isPersian
-                        ? isSignUp ? 'ثبت‌نام موفقیت‌آمیز بود' : 'ورود موفقیت‌آمیز بود'
-                        : isSignUp ? 'Sign up successful' : 'Login successful',
-                    [{ text: 'OK', onPress: () => router.back() }]
-                );
+                console.log('✅ عملیات موفق - ریدایرکت به صفحه اصلی');
+                // ریدایرکت فوری بدون آلرت
+                router.replace('/(tabs)');
             }
         } catch (error) {
-            Alert.alert(
-                isPersian ? 'خطا' : 'Error',
-                isPersian ? 'خطایی رخ داد' : 'An error occurred'
-            );
+            Alert.alert('خطا', 'خطایی رخ داد');
         } finally {
             setAuthLoading(false);
         }

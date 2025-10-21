@@ -28,12 +28,7 @@
     },
     "plugins": [
       "expo-router",
-      [
-        "expo-auth-session",
-        {
-          "redirectUri": "price://auth/callback"
-        }
-      ],
+    
       [
         "expo-splash-screen",
         {

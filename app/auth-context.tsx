@@ -90,6 +90,7 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
     };
 
     const startTimeTracker = () => {
+        console.log('the timer start');
         // هر 30 ثانیه این کار رو انجام بده:
         intervalRef.current = setInterval(async () => {
             if (user && startTime) {
@@ -103,16 +104,19 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
 
     const saveUserTime = async (userId: string, sessionTime: number) => {
         try {
+            console.log('saving user time', userId, 'time', sessionTime);
             // زمان کل کاربر رو از دیتابیس بگیر
             const { data, error } = await supabase
                 .from('profiles')
                 .select('total_time')
                 .eq('id', userId)
                 .single();
+            console.log('last data:', data);
 
             if (data && !error) {
                 // زمان جدید = زمان قدیمی + زمان فعلی
                 const newTotalTime = (data.total_time || 0) + sessionTime;// در دیتابیس آپدیت کن
+                console.log('new time:', newTotalTime)
                 const { error: updateError } = await supabase
                     .from('profiles')
                     .update({
@@ -122,46 +126,59 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
                     .eq('id', userId);
 
                 if (!updateError) {
-                    console.log('✅ زمان ذخیره شد:', newTotalTime);
+                    console.log('✅ data saved', newTotalTime);
                 }
             }
         } catch (error) {
-            console.log('خطا در ذخیره زمان:', error);
+            console.log('eror saving data:', error);
         }
     };
 
     const signUp = async (email: string, password: string, name: string) => {
         try {
+            console.log('🚀 Starting signup for:', email);
+
+            // 1. Sign up in authentication system
             const { data, error } = await supabase.auth.signUp({
-                email,
-                password,
+                email: email.trim(),
+                password: password.trim(),
             });
 
-            if (error) throw error;
+            if (error) {
+                console.log('❌ Auth signup error:', error.message);
+                return { data: null, error };
+            }
 
+            console.log('✅ User created in auth:', data.user?.id);
+
+            // 2. If user created, create profile
             if (data.user) {
-                // ایجاد پروفایل کاربر
                 const { error: profileError } = await supabase
                     .from('profiles')
                     .insert([
                         {
                             id: data.user.id,
-                            name: name,
-                            email: email,
+                            name: name.trim(),
+                            email: email.trim(),
                             total_time: 0,
                             sessions: 1,
                         }
                     ]);
 
-                if (profileError) throw profileError;
+                if (profileError) {
+                    console.log('❌ Profile creation error:', profileError.message);
+                    // Even if profile fails, user is registered
+                } else {
+                    console.log('✅ Profile created successfully');
+                }
             }
 
             return { data, error: null };
-        } catch (error) {
+        } catch (error: any) {
+            console.log('💥 General signup error:', error.message);
             return { data: null, error };
         }
     };
-
     const signIn = async (email: string, password: string) => {
         try {
             const { data, error } = await supabase.auth.signInWithPassword({

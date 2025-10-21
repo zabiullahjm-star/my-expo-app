@@ -27,17 +27,17 @@ export default function ProfileScreen() {
 
     const handleLogout = () => {
         Alert.alert(
-            isPersian ? 'خروج' : 'Logout',
-            isPersian ? 'آیا مطمئن هستید؟' : 'Are you sure?',
+            'خروج',
+            'آیا مطمئن هستید؟',
             [
+                { text: 'لغو', style: 'cancel' },
                 {
-                    text: isPersian ? 'لغو' : 'Cancel',
-                    style: 'cancel'
-                },
-                {
-                    text: isPersian ? 'خروج' : 'Logout',
-                    onPress: signOut,
-                    style: 'destructive'
+                    text: 'خروج',
+                    onPress: async () => {
+                        await signOut();
+                        console.log('✅ خروج موفق - ریدایرکت به لاگین');
+                        router.replace('/login');
+                    }
                 }
             ]
         );
