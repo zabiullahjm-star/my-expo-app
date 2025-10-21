@@ -2,12 +2,14 @@ import { Tabs } from 'expo-router';
 import React from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import { HapticTab } from '@/components/haptic-tab';
-//import { IconSymbol } from '@/components/ui/icon-symbol';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { ThemeProvider } from '../ThemeContext';
+import { LanguageProvider } from '../languageContext';
 
-export default function TabLayout() {
+function TabLayoutContent() {
   const colorScheme = useColorScheme();
+
   return (
     <Tabs
       screenOptions={{
@@ -35,6 +37,26 @@ export default function TabLayout() {
           ),
         }}
       />
+      {/* تب جدید Settings */}
+      <Tabs.Screen
+        name="settings"
+        options={{
+          title: 'Settings',
+          tabBarIcon: ({ color }) => (
+            <Ionicons size={28} name="settings-sharp" color={color} />
+          ),
+        }}
+      />
     </Tabs>
+  );
+}
+
+export default function TabLayout() {
+  return (
+    <ThemeProvider>
+      <LanguageProvider>
+        <TabLayoutContent />
+      </LanguageProvider>
+    </ThemeProvider>
   );
 }
