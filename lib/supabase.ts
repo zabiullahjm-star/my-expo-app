@@ -1,25 +1,38 @@
-// 📁 supabaseClient.ts
-import 'react-native-url-polyfill/auto';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '@supabase/supabase-js'
+import AsyncStorage from '@react-native-async-storage/async-storage'
 
-// 🔑 اطلاعات پروژه‌ت
-const SUPABASE_URL = 'https://xcpzagvohhdnexmlgxjm.supabase.co';
-const SUPABASE_ANON_KEY =
-    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhjcHphZ3ZvaGhkbmV4bWxneGptIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjAwOTIxMzYsImV4cCI6MjA3NTY2ODEzNn0.Zi6UY_LcA_zqlKz5AXr8MDD2WazvlDMMp8P3tl0R1nk';
+const supabaseUrl = 'https://your-project.supabase.co'
+const supabaseKey = 'your-anon-key'
 
-// ⚙️ ساخت کلاینت Supabase مخصوص React Native
-export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+// Create a custom storage adapter that safely uses AsyncStorage
+const customStorage = {
+    getItem: (key: string) => {
+        // Check if window is defined (we are in a browser environment)
+        if (typeof window !== 'undefined') {
+            return AsyncStorage.getItem(key)
+        }
+        // Return a mock for server-side environments
+        return Promise.resolve(null)
+    },
+    setItem: (key: string, value: string) => {
+        if (typeof window !== 'undefined') {
+            return AsyncStorage.setItem(key, value)
+        }
+        return Promise.resolve()
+    },
+    removeItem: (key: string) => {
+        if (typeof window !== 'undefined') {
+            return AsyncStorage.removeItem(key)
+        }
+        return Promise.resolve()
+    },
+}
+
+export const supabase = createClient(supabaseUrl, supabaseKey, {
     auth: {
-        storage: AsyncStorage,
+        storage: customStorage,
         autoRefreshToken: true,
         persistSession: true,
-        detectSessionInUrl: false, // جلوگیری از ارور window
-    },
-    global: {
-        headers: { 'x-client-info': 'AfghanChat/Expo' },
-    },
-    db: {
-        schema: 'public',
-    },
-});
+        detectSessionInUrl: false,
+    }
+})

@@ -111,11 +111,9 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
                 .select('total_time')
                 .eq('id', userId)
                 .single();
-            console.log('last data:', data);
-
-            if (data && !error) {
+            console.log('last data:', data); if (data && !error) {
                 // زمان جدید = زمان قدیمی + زمان فعلی
-                const newTotalTime = (data.total_time || 0) + sessionTime;// در دیتابیس آپدیت کن
+                const newTotalTime = (data.total_time || 0) + sessionTime; // تصحیح: از || استفاده کن
                 console.log('new time:', newTotalTime)
                 const { error: updateError } = await supabase
                     .from('profiles')
@@ -179,6 +177,7 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
             return { data: null, error };
         }
     };
+
     const signIn = async (email: string, password: string) => {
         try {
             const { data, error } = await supabase.auth.signInWithPassword({
@@ -193,7 +192,7 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
                 await supabase
                     .from('profiles')
                     .update({
-                        sessions: (profile?.sessions || 0) + 1,
+                        sessions: (profile?.sessions || 0) + 1, // تصحیح: از || استفاده کن
                         last_seen: new Date().toISOString()
                     })
                     .eq('id', data.user.id);
